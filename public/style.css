@@ -1427,7 +1427,9 @@ body.dark .notification {
   }
   
   .nav-buttons {
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-sm);
   }
   
   .post-actions {
@@ -1495,6 +1497,10 @@ body.dark .notification {
   .comment.level-2,
   .comment.level-3 {
     margin-left: 10px !important;
+  }
+  
+  .nav-buttons {
+    grid-template-columns: 1fr;
   }
 }
 

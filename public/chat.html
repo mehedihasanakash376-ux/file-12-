@@ -414,8 +414,11 @@
 
     @media (max-width: 768px) {
       .chat-sidebar {
-        width: 100%;
-        position: absolute;
+        width: 280px;
+        position: fixed;
+        left: 0;
+        top: 0;
+        height: 100vh;
         z-index: 1000;
         transform: translateX(-100%);
         transition: transform var(--transition-smooth);
@@ -426,16 +429,39 @@
       }
 
       .chat-main {
+        margin-left: 0;
         width: 100%;
       }
 
       .message {
         max-width: 85%;
       }
+      
+      .mobile-toggle {
+        display: block;
+        position: fixed;
+        top: var(--spacing-md);
+        left: var(--spacing-md);
+        z-index: 1001;
+        background: var(--gradient-primary);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        cursor: pointer;
+        font-size: 1.2rem;
+      }
+    }
+    
+    .mobile-toggle {
+      display: none;
     }
   </style>
 </head>
 <body>
+  <button class="mobile-toggle" id="mobile-toggle" onclick="toggleSidebar()">💬</button>
+  
   <div class="chat-container">
     <!-- Sidebar -->
     <div class="chat-sidebar" id="chat-sidebar">
@@ -503,6 +529,11 @@
     function goHome() {
       window.location.href = '/';
     }
+    
+    function toggleSidebar() {
+      const sidebar = document.getElementById('chat-sidebar');
+      sidebar.classList.toggle('open');
+    }
 
     // Initialize
     async function init() {
@@ -569,7 +600,25 @@
         socket.on('webrtc-signal', (data) => {
           handleWebRTCSignal(data);
         });
+        
+        socket.on('webrtc-offer', async (data) => {
+          if (currentCall && currentCall.peerConnection) {
+            await currentCall.peerConnection.setRemoteDescription(data.offer);
+            const answer = await currentCall.peerConnection.createAnswer();
+            await currentCall.peerConnection.setLocalDescription(answer);
+            
+            socket.emit('webrtc-answer', {
+              targetUserId: data.senderId,
+              answer: answer
+            });
+          }
+        });
 
+        socket.on('webrtc-answer', async (data) => {
+          if (currentCall && currentCall.peerConnection) {
+            await currentCall.peerConnection.setRemoteDescription(data.answer);
+          }
+        });
         // Setup search
         setupSearch();
 
@@ -991,29 +1040,32 @@
       };
 
       const peerConnection = new RTCPeerConnection(configuration);
-      let localStream = null;
+      currentCall.peerConnection = peerConnection;
 
       // Get user media (audio only)
       navigator.mediaDevices.getUserMedia({ audio: true, video: false })
         .then(stream => {
-          localStream = stream;
+          currentCall.localStream = stream;
           stream.getTracks().forEach(track => {
             peerConnection.addTrack(track, stream);
           });
 
           // Handle incoming stream
           peerConnection.ontrack = (event) => {
-            const remoteAudio = document.createElement('audio');
-            remoteAudio.srcObject = event.streams[0];
-            remoteAudio.autoplay = true;
-            document.body.appendChild(remoteAudio);
+            if (!currentCall.remoteAudio) {
+              currentCall.remoteAudio = document.createElement('audio');
+              currentCall.remoteAudio.autoplay = true;
+              document.body.appendChild(currentCall.remoteAudio);
+            }
+            currentCall.remoteAudio.srcObject = event.streams[0];
           };
 
           // Handle ICE candidates
           peerConnection.onicecandidate = (event) => {
             if (event.candidate) {
+              const targetId = currentCall.partner ? currentCall.partner._id : currentCall.callerId;
               socket.emit('webrtc-ice-candidate', {
-                targetUserId: currentCall.partner._id,
+                targetUserId: targetId,
                 candidate: event.candidate
               });
             }
@@ -1033,25 +1085,8 @@
               });
           }
 
-          // Listen for WebRTC events
-          socket.on('webrtc-offer', async (data) => {
-            await peerConnection.setRemoteDescription(data.offer);
-            const answer = await peerConnection.createAnswer();
-            await peerConnection.setLocalDescription(answer);
-            
-            socket.emit('webrtc-answer', {
-              targetUserId: data.senderId,
-              answer: answer
-            });
-          });
-
-          socket.on('webrtc-answer', async (data) => {
-            await peerConnection.setRemoteDescription(data.answer);
-          });
-
-          socket.on('webrtc-ice-candidate', async (data) => {
-            await peerConnection.addIceCandidate(data.candidate);
-          });
+          // Show call controls
+          showCallControls();
 
           showNotification('Audio call connected! 🎙️', 'success');
         })
@@ -1060,7 +1095,69 @@
           showNotification('Could not access microphone', 'error');
         });
     }
+    
+    function showCallControls() {
+      // Create call controls overlay
+      const callControls = document.createElement('div');
+      callControls.id = 'call-controls';
+      callControls.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: var(--card-bg-dark);
+        padding: 2rem;
+        border-radius: var(--radius-large);
+        z-index: 2000;
+        text-align: center;
+        color: white;
+      `;
+      
+      const partnerName = currentCall.partner ? currentCall.partner.username : currentCall.callerName;
+      callControls.innerHTML = `
+        <h3>🎙️ Call with ${partnerName}</h3>
+        <p>Call in progress...</p>
+        <button onclick="endCall()" style="background: var(--error); color: white; border: none; padding: 1rem 2rem; border-radius: var(--radius); cursor: pointer; margin-top: 1rem;">
+          📵 End Call
+        </button>
+      `;
+      
+      document.body.appendChild(callControls);
+    }
+    
+    function endCall() {
+      if (currentCall) {
+        // Close peer connection
+        if (currentCall.peerConnection) {
+          currentCall.peerConnection.close();
+        }
+        
+        // Stop local stream
+        if (currentCall.localStream) {
+          currentCall.localStream.getTracks().forEach(track => track.stop());
+        }
+        
+        // Remove remote audio
+        if (currentCall.remoteAudio) {
+          currentCall.remoteAudio.remove();
+        }
+        
+        // Remove call controls
+        const callControls = document.getElementById('call-controls');
+        if (callControls) {
+          callControls.remove();
+        }
+        
+        currentCall = null;
+        showNotification('Call ended', 'info');
+      }
+    }
 
+        socket.on('webrtc-ice-candidate', async (data) => {
+          if (currentCall && currentCall.peerConnection) {
+            await currentCall.peerConnection.addIceCandidate(data.candidate);
+          }
+        });
 
     // Utility functions
     function getTimeAgo(date) {

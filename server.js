@@ -362,6 +362,42 @@ io.on('connection', (socket) => {
           isOnline: true,
           lastSeen: new Date()
         });
+        
+        socket.on('webrtc-offer', (data) => {
+          const { targetUserId, offer } = data;
+          const targetSocketId = connectedUsers.get(targetUserId);
+          
+          if (targetSocketId) {
+            io.to(targetSocketId).emit('webrtc-offer', {
+              offer,
+              senderId: socket.userId
+            });
+          }
+        });
+        
+        socket.on('webrtc-answer', (data) => {
+          const { targetUserId, answer } = data;
+          const targetSocketId = connectedUsers.get(targetUserId);
+          
+          if (targetSocketId) {
+            io.to(targetSocketId).emit('webrtc-answer', {
+              answer,
+              senderId: socket.userId
+            });
+          }
+        });
+        
+        socket.on('webrtc-ice-candidate', (data) => {
+          const { targetUserId, candidate } = data;
+          const targetSocketId = connectedUsers.get(targetUserId);
+          
+          if (targetSocketId) {
+            io.to(targetSocketId).emit('webrtc-ice-candidate', {
+              candidate,
+              senderId: socket.userId
+            });
+          }
+        });
 
         socket.emit('authenticated', { user: user.username });
         
@@ -468,13 +504,37 @@ io.on('connection', (socket) => {
   });
 
   // Handle WebRTC signaling
-  socket.on('webrtc-signal', (data) => {
-    const { targetUserId, signal } = data;
+  socket.on('webrtc-offer', (data) => {
+    const { targetUserId, offer } = data;
     const targetSocketId = connectedUsers.get(targetUserId);
     
     if (targetSocketId) {
-      io.to(targetSocketId).emit('webrtc-signal', {
-        signal,
+      io.to(targetSocketId).emit('webrtc-offer', {
+        offer,
+        senderId: socket.userId
+      });
+    }
+  });
+  
+  socket.on('webrtc-answer', (data) => {
+    const { targetUserId, answer } = data;
+    const targetSocketId = connectedUsers.get(targetUserId);
+    
+    if (targetSocketId) {
+      io.to(targetSocketId).emit('webrtc-answer', {
+        answer,
+        senderId: socket.userId
+      });
+    }
+  });
+  
+  socket.on('webrtc-ice-candidate', (data) => {
+    const { targetUserId, candidate } = data;
+    const targetSocketId = connectedUsers.get(targetUserId);
+    
+    if (targetSocketId) {
+      io.to(targetSocketId).emit('webrtc-ice-candidate', {
+        candidate,
         senderId: socket.userId
       });
     }
@@ -679,9 +739,16 @@ app.get('/api/search', optionalAuth, async (req, res) => {
     let posts = [];
 
     if (type === 'users' || type === 'all') {
-      users = await User.find({
+      let userQuery = {
         username: { $regex: searchQuery, $options: 'i' }
-      })
+      };
+      
+      // Exclude current user from search results
+      if (req.user) {
+        userQuery._id = { $ne: req.user._id };
+      }
+      
+      users = await User.find(userQuery)
       .select('username isPremium avatar bio isOnline lastSeen')
       .limit(limitNum)
       .skip(skip)
@@ -742,30 +809,7 @@ app.get('/api/users/:username', optionalAuth, async (req, res) => {
 });
 
 // Create post
-app.post('/api/posts', (req, res, next) => {
-  // Handle both single file and multiple files
-  const uploadHandler = upload.fields([
-    { name: 'files', maxCount: 10 },
-    { name: 'file', maxCount: 1 }
-  ]);
-  
-  uploadHandler(req, res, (err) => {
-    if (err) {
-      console.error('Multer error:', err);
-      if (err.code === 'LIMIT_UNEXPECTED_FILE') {
-        return res.status(400).json({ error: 'Unexpected file field. Use "files" or "file" as field name.' });
-      }
-      if (err.code === 'LIMIT_FILE_SIZE') {
-        return res.status(400).json({ error: 'File too large. Maximum size is 50MB.' });
-      }
-      if (err.code === 'LIMIT_FILE_COUNT') {
-        return res.status(400).json({ error: 'Too many files. Maximum is 10 files per upload.' });
-      }
-      return res.status(400).json({ error: err.message });
-    }
-    next();
-  });
-}, async (req, res) => {
+app.post('/api/posts', upload.array('files', 10), async (req, res) => {
   try {
     // Check for authentication token
     const authHeader = req.headers['authorization'];
@@ -790,13 +834,8 @@ app.post('/api/posts', (req, res, next) => {
     
     // Handle both files and file fields
     const uploadedFiles = [];
-    if (req.files) {
-      if (req.files.files) {
-        uploadedFiles.push(...req.files.files);
-      }
-      if (req.files.file) {
-        uploadedFiles.push(...req.files.file);
-      }
+    if (req.files && req.files.length > 0) {
+      uploadedFiles.push(...req.files);
     }
     
     if (!text && uploadedFiles.length === 0) {
@@ -837,7 +876,7 @@ app.post('/api/posts', (req, res, next) => {
 });
 
 // Get posts
-app.get('/api/posts', async (req, res) => {
+app.get('/api/posts', optionalAuth, async (req, res) => {
   try {
     const { page = 0, limit = 10, userId } = req.query;
     
@@ -854,28 +893,17 @@ app.get('/api/posts', async (req, res) => {
       .limit(parseInt(limit))
       .skip(parseInt(page) * parseInt(limit));
 
-    // Check if user is authenticated for interaction data
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-    
-    if (token) {
-      try {
-        const decoded = jwt.verify(token, JWT_SECRET);
-        const user = await User.findById(decoded.userId);
-        if (user) {
-          posts.forEach(post => {
-            post.userLiked = post.likedBy.includes(user._id);
-            post.comments.forEach(comment => {
-              comment.userLiked = comment.likedBy.includes(user._id);
-              comment.replies.forEach(reply => {
-                reply.userLiked = reply.likedBy.includes(user._id);
-              });
-            });
+    // Add user interaction data if authenticated
+    if (req.user) {
+      posts.forEach(post => {
+        post.userLiked = post.likedBy.includes(req.user._id);
+        post.comments.forEach(comment => {
+          comment.userLiked = comment.likedBy.includes(req.user._id);
+          comment.replies.forEach(reply => {
+            reply.userLiked = reply.likedBy.includes(req.user._id);
           });
-        }
-      } catch (error) {
-        // Token invalid, continue without user data
-      }
+        });
+      });
     }
 
     res.json(posts);
