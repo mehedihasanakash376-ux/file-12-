@@ -982,17 +982,85 @@
     }
 
     function initializeWebRTC() {
-      // WebRTC implementation would go here
-      // This is a simplified version - full implementation would require
-      // peer connection setup, media stream handling, etc.
-      console.log('WebRTC call initialized');
-      showNotification('Call feature coming soon!', 'info');
+      // Initialize WebRTC for audio calls
+      const configuration = {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' }
+        ]
+      };
+
+      const peerConnection = new RTCPeerConnection(configuration);
+      let localStream = null;
+
+      // Get user media (audio only)
+      navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+        .then(stream => {
+          localStream = stream;
+          stream.getTracks().forEach(track => {
+            peerConnection.addTrack(track, stream);
+          });
+
+          // Handle incoming stream
+          peerConnection.ontrack = (event) => {
+            const remoteAudio = document.createElement('audio');
+            remoteAudio.srcObject = event.streams[0];
+            remoteAudio.autoplay = true;
+            document.body.appendChild(remoteAudio);
+          };
+
+          // Handle ICE candidates
+          peerConnection.onicecandidate = (event) => {
+            if (event.candidate) {
+              socket.emit('webrtc-ice-candidate', {
+                targetUserId: currentCall.partner._id,
+                candidate: event.candidate
+              });
+            }
+          };
+
+          // Create offer if initiator
+          if (currentCall.isInitiator) {
+            peerConnection.createOffer()
+              .then(offer => {
+                return peerConnection.setLocalDescription(offer);
+              })
+              .then(() => {
+                socket.emit('webrtc-offer', {
+                  targetUserId: currentCall.partner._id,
+                  offer: peerConnection.localDescription
+                });
+              });
+          }
+
+          // Listen for WebRTC events
+          socket.on('webrtc-offer', async (data) => {
+            await peerConnection.setRemoteDescription(data.offer);
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+            
+            socket.emit('webrtc-answer', {
+              targetUserId: data.senderId,
+              answer: answer
+            });
+          });
+
+          socket.on('webrtc-answer', async (data) => {
+            await peerConnection.setRemoteDescription(data.answer);
+          });
+
+          socket.on('webrtc-ice-candidate', async (data) => {
+            await peerConnection.addIceCandidate(data.candidate);
+          });
+
+          showNotification('Audio call connected! 🎙️', 'success');
+        })
+        .catch(error => {
+          console.error('Error accessing microphone:', error);
+          showNotification('Could not access microphone', 'error');
+        });
     }
 
-    function handleWebRTCSignal(data) {
-      // Handle WebRTC signaling
-      console.log('WebRTC signal received:', data);
-    }
 
     // Utility functions
     function getTimeAgo(date) {
