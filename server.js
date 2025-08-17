@@ -1151,6 +1151,23 @@ app.get('*', (req, res) => {
   if (req.path.startsWith('/api/') || req.path.startsWith('/uploads/')) {
     return res.status(404).json({ error: 'Not found' });
   }
+  
+  // Serve specific HTML files
+  if (req.path === '/auth.html' || req.path === '/chat.html' || req.path === '/search.html' || 
+      req.path === '/profile.html' || req.path === '/all.html' || req.path === '/info.html' || 
+      req.path === '/admin.html') {
+    return res.sendFile(path.join(__dirname, 'public', req.path));
+  }
+  
+  // For /info and /admin routes, serve the HTML files
+  if (req.path === '/info') {
+    return res.sendFile(path.join(__dirname, 'public', 'info.html'));
+  }
+  
+  if (req.path === '/admin') {
+    return res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+  }
+  
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
