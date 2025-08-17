@@ -742,7 +742,30 @@ app.get('/api/users/:username', optionalAuth, async (req, res) => {
 });
 
 // Create post
-app.post('/api/posts', upload.array('files', 10), async (req, res) => {
+app.post('/api/posts', (req, res, next) => {
+  // Handle both single file and multiple files
+  const uploadHandler = upload.fields([
+    { name: 'files', maxCount: 10 },
+    { name: 'file', maxCount: 1 }
+  ]);
+  
+  uploadHandler(req, res, (err) => {
+    if (err) {
+      console.error('Multer error:', err);
+      if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+        return res.status(400).json({ error: 'Unexpected file field. Use "files" or "file" as field name.' });
+      }
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ error: 'File too large. Maximum size is 50MB.' });
+      }
+      if (err.code === 'LIMIT_FILE_COUNT') {
+        return res.status(400).json({ error: 'Too many files. Maximum is 10 files per upload.' });
+      }
+      return res.status(400).json({ error: err.message });
+    }
+    next();
+  });
+}, async (req, res) => {
   try {
     // Check for authentication token
     const authHeader = req.headers['authorization'];
@@ -765,7 +788,18 @@ app.post('/api/posts', upload.array('files', 10), async (req, res) => {
 
     const { text } = req.body;
     
-    if (!text && (!req.files || req.files.length === 0)) {
+    // Handle both files and file fields
+    const uploadedFiles = [];
+    if (req.files) {
+      if (req.files.files) {
+        uploadedFiles.push(...req.files.files);
+      }
+      if (req.files.file) {
+        uploadedFiles.push(...req.files.file);
+      }
+    }
+    
+    if (!text && uploadedFiles.length === 0) {
       return res.status(400).json({ error: 'Post must contain text or media' });
     }
 
@@ -773,13 +807,13 @@ app.post('/api/posts', upload.array('files', 10), async (req, res) => {
     const hashtags = text ? text.match(/#\w+/g) || [] : [];
 
     // Process uploaded files
-    const media = req.files ? req.files.map(file => ({
+    const media = uploadedFiles.map(file => ({
       filename: file.filename,
       originalName: file.originalname,
       mimetype: file.mimetype,
       size: file.size,
       url: `/uploads/${file.filename}`
-    })) : [];
+    }));
 
     const post = new Post({
       user: user.username,
@@ -798,20 +832,12 @@ app.post('/api/posts', upload.array('files', 10), async (req, res) => {
     res.status(201).json(post);
   } catch (error) {
     console.error('Create post error:', error);
-    if (error instanceof multer.MulterError) {
-      if (error.code === 'LIMIT_FILE_SIZE') {
-        return res.status(400).json({ error: 'File too large. Maximum size is 50MB.' });
-      }
-      if (error.code === 'LIMIT_FILE_COUNT') {
-        return res.status(400).json({ error: 'Too many files. Maximum is 10 files per upload.' });
-      }
-    }
     res.status(500).json({ error: 'Server error' });
   }
 });
 
 // Get posts
-app.get('/api/posts', optionalAuth, async (req, res) => {
+app.get('/api/posts', async (req, res) => {
   try {
     const { page = 0, limit = 10, userId } = req.query;
     
@@ -828,17 +854,28 @@ app.get('/api/posts', optionalAuth, async (req, res) => {
       .limit(parseInt(limit))
       .skip(parseInt(page) * parseInt(limit));
 
-    // Add user interaction data if authenticated
-    if (req.user) {
-      posts.forEach(post => {
-        post.userLiked = post.likedBy.includes(req.user._id);
-        post.comments.forEach(comment => {
-          comment.userLiked = comment.likedBy.includes(req.user._id);
-          comment.replies.forEach(reply => {
-            reply.userLiked = reply.likedBy.includes(req.user._id);
+    // Check if user is authenticated for interaction data
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        const user = await User.findById(decoded.userId);
+        if (user) {
+          posts.forEach(post => {
+            post.userLiked = post.likedBy.includes(user._id);
+            post.comments.forEach(comment => {
+              comment.userLiked = comment.likedBy.includes(user._id);
+              comment.replies.forEach(reply => {
+                reply.userLiked = reply.likedBy.includes(user._id);
+              });
+            });
           });
-        });
-      });
+        }
+      } catch (error) {
+        // Token invalid, continue without user data
+      }
     }
 
     res.json(posts);

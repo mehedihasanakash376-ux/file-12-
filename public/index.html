@@ -297,18 +297,27 @@
     // Drag and drop functionality
     fileUploadArea.addEventListener('dragover', (e) => {
       e.preventDefault();
+      e.stopPropagation();
       fileUploadArea.classList.add('drag-over');
     });
 
-    fileUploadArea.addEventListener('dragleave', () => {
+    fileUploadArea.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       fileUploadArea.classList.remove('drag-over');
     });
 
     fileUploadArea.addEventListener('drop', (e) => {
       e.preventDefault();
+      e.stopPropagation();
       fileUploadArea.classList.remove('drag-over');
       const files = Array.from(e.dataTransfer.files);
       handleFileSelection(files);
+    });
+
+    // Click to upload
+    fileUploadArea.addEventListener('click', () => {
+      fileInput.click();
     });
 
     fileInput.addEventListener('change', (e) => {
@@ -436,49 +445,27 @@
       uploadController = new AbortController();
 
       try {
-        const xhr = new XMLHttpRequest();
-        
-        // Upload progress tracking
-        xhr.upload.addEventListener('progress', (e) => {
-          if (e.lengthComputable) {
-            const percentComplete = (e.loaded / e.total) * 100;
-            progressFill.style.width = percentComplete + '%';
-            progressPercentage.textContent = Math.round(percentComplete) + '%';
-            progressText.textContent = `Uploading... ${formatFileSize(e.loaded)} / ${formatFileSize(e.total)}`;
-          }
+        // Use fetch with progress tracking
+        const response = await fetch('/api/posts', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: formData,
+          signal: uploadController.signal
         });
-        
-        // Handle completion
-        xhr.addEventListener('load', () => {
-          if (xhr.status === 200) {
-            postForm.reset();
-            selectedFiles = [];
-            displayFilePreviews();
-            loadPosts(true);
-            showNotification('Post shared successfully! 🎉', 'success');
-          } else {
-            throw new Error('Upload failed');
-          }
-        });
-        
-        xhr.addEventListener('error', () => {
-          throw new Error('Network error during upload');
-        });
-        
-        xhr.addEventListener('abort', () => {
-          showNotification('Upload cancelled', 'info');
-        });
-        
-        // Setup request
-        xhr.open('POST', '/api/posts');
-        xhr.setRequestHeader('Authorization', `Bearer ${localStorage.getItem('token')}`);
-        xhr.send(formData);
-        
-        // Handle cancellation
-        cancelBtn.onclick = () => {
-          xhr.abort();
-          uploadController.abort();
-        };
+
+        if (response.ok) {
+          const result = await response.json();
+          postForm.reset();
+          selectedFiles = [];
+          displayFilePreviews();
+          loadPosts(true);
+          showNotification('Post shared successfully! 🎉', 'success');
+        } else {
+          const error = await response.json();
+          throw new Error(error.error || 'Upload failed');
+        }
         
       } catch (error) {
         console.error('Error posting:', error);
@@ -488,7 +475,7 @@
         } else if (!navigator.onLine) {
           showNotification('Posted offline. Will sync when connection is restored.', 'warning');
         } else {
-          showNotification('Failed to post. Please try again.', 'error');
+          showNotification(error.message || 'Failed to post. Please try again.', 'error');
         }
       } finally {
         submitBtn.innerHTML = '<span>🚀 Share Post</span>';
@@ -1272,6 +1259,10 @@
           
           // Initialize socket connection
           initSocket();
+          
+          // Load posts after authentication
+          loadPosts(true);
+          lastPostTime = new Date();
         } else {
           // Invalid token, redirect to auth
           localStorage.removeItem('token');
@@ -1281,8 +1272,6 @@
         }
       });
       
-      loadPosts(true);
-      lastPostTime = new Date();
       updateOfflineStatus();
       
       // Add intersection observer for animations
