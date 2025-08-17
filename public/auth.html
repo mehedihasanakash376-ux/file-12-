@@ -504,7 +504,24 @@
 
     // Check if user is already logged in
     if (localStorage.getItem('token')) {
-      window.location.href = '/';
+      // Verify token is still valid
+      fetch('/api/auth/me', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      }).then(response => {
+        if (response.ok) {
+          window.location.href = '/';
+        } else {
+          // Token invalid, clear storage
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+        }
+      }).catch(() => {
+        // Network error, clear storage
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      });
     }
   </script>
 </body>

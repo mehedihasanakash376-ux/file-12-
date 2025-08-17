@@ -22,6 +22,9 @@ const io = socketIo(server, {
   }
 });
 
+// Trust proxy for Render deployment
+app.set('trust proxy', true);
+
 const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGODB_URI;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
@@ -30,13 +33,14 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: false,
-  crossOriginEmbedderPolicy: false
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: 200, // limit each IP to 200 requests per windowMs
   message: 'Too many requests from this IP, please try again later.'
 });
 app.use('/api/', limiter);
@@ -52,6 +56,12 @@ const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
+
+// Serve uploaded files with proper headers
+app.use('/uploads', (req, res, next) => {
+  res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+}, express.static('uploads'));
 
 // MongoDB connection
 mongoose.connect(MONGODB_URI, {
@@ -275,9 +285,12 @@ const upload = multer({
     files: 10 // Max 10 files per upload
   },
   fileFilter: (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|gif|webp|mp4|webm|mp3|wav|pdf|doc|docx|txt|zip|rar/;
+    const allowedTypes = /jpeg|jpg|png|gif|webp|mp4|webm|avi|mov|mp3|wav|ogg|pdf|doc|docx|txt|zip|rar/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
+    const mimetype = file.mimetype.startsWith('image/') || 
+                    file.mimetype.startsWith('video/') || 
+                    file.mimetype.startsWith('audio/') ||
+                    ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain', 'application/zip', 'application/x-rar-compressed'].includes(file.mimetype);
     
     if (mimetype && extname) {
       return cb(null, true);
@@ -729,8 +742,27 @@ app.get('/api/users/:username', optionalAuth, async (req, res) => {
 });
 
 // Create post
-app.post('/api/posts', authenticateToken, upload.array('files', 10), async (req, res) => {
+app.post('/api/posts', upload.array('files', 10), async (req, res) => {
   try {
+    // Check for authentication token
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    
+    if (!token) {
+      return res.status(401).json({ error: 'Access token required' });
+    }
+
+    let user;
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET);
+      user = await User.findById(decoded.userId);
+      if (!user) {
+        return res.status(401).json({ error: 'Invalid token' });
+      }
+    } catch (error) {
+      return res.status(403).json({ error: 'Invalid token' });
+    }
+
     const { text } = req.body;
     
     if (!text && (!req.files || req.files.length === 0)) {
@@ -750,8 +782,8 @@ app.post('/api/posts', authenticateToken, upload.array('files', 10), async (req,
     })) : [];
 
     const post = new Post({
-      user: req.user.username,
-      userId: req.user._id,
+      user: user.username,
+      userId: user._id,
       text: text || '',
       media,
       hashtags: hashtags.map(tag => tag.toLowerCase())
@@ -766,6 +798,14 @@ app.post('/api/posts', authenticateToken, upload.array('files', 10), async (req,
     res.status(201).json(post);
   } catch (error) {
     console.error('Create post error:', error);
+    if (error instanceof multer.MulterError) {
+      if (error.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ error: 'File too large. Maximum size is 50MB.' });
+      }
+      if (error.code === 'LIMIT_FILE_COUNT') {
+        return res.status(400).json({ error: 'Too many files. Maximum is 10 files per upload.' });
+      }
+    }
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -1052,9 +1092,6 @@ app.delete('/api/admin/posts/:id', async (req, res) => {
   }
 });
 
-// Serve uploaded files
-app.use('/uploads', express.static('uploads'));
-
 // Error handling middleware
 app.use((error, req, res, next) => {
   console.error('Error:', error);
@@ -1069,6 +1106,15 @@ app.use((error, req, res, next) => {
   }
   
   res.status(500).json({ error: 'Something went wrong!' });
+});
+
+// Catch-all route for SPA
+app.get('*', (req, res) => {
+  // Don't serve index.html for API routes or file uploads
+  if (req.path.startsWith('/api/') || req.path.startsWith('/uploads/')) {
+    return res.status(404).json({ error: 'Not found' });
+  }
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Start server

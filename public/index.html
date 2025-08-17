@@ -118,8 +118,11 @@
       <div class="nav-buttons">
         <button class="btn btn-secondary active" data-view="feed">📋 Feed</button>
         <button class="btn btn-outline" data-view="all">🌐 All Posts</button>
+        <a href="/chat.html" class="btn btn-outline">💬 Chat</a>
+        <a href="/search.html" class="btn btn-outline">🔍 Search</a>
         <a href="/info" class="btn btn-outline">ℹ️ About</a>
         <a href="/admin" class="btn btn-outline">⚙️ Admin</a>
+        <button class="btn btn-outline" onclick="logout()">🚪 Logout</button>
       </div>
     </nav>
 
@@ -173,7 +176,10 @@
     function checkAuth() {
       const token = localStorage.getItem('token');
       if (!token) {
-        window.location.href = '/auth.html';
+        // Redirect to auth page if not authenticated
+        if (window.location.pathname !== '/auth.html') {
+          window.location.href = '/auth.html';
+        }
         return false;
       }
       return true;
@@ -1262,6 +1268,7 @@
           // Update username input with current user
           usernameInput.value = user.username;
           usernameInput.disabled = true;
+          usernameInput.style.opacity = '0.7';
           
           // Initialize socket connection
           initSocket();
@@ -1303,14 +1310,6 @@
           });
         }
       });
-      
-      // Add navigation buttons
-      const navButtons = document.querySelector('.nav-buttons');
-      navButtons.innerHTML += `
-        <a href="/chat.html" class="btn btn-outline">💬 Chat</a>
-        <a href="/search.html" class="btn btn-outline">🔍 Search</a>
-        <button class="btn btn-outline" onclick="logout()">🚪 Logout</button>
-      `;
     });
     
     // Logout function
