@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#000000" />
+  <title>About Me</title>
+
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/png" href="/icon.png">
+  <link rel="stylesheet" href="style.css">
+
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      transition: background 0.4s ease, color 0.4s ease;
+    }
+
+    :root {
+      --bg: #ffffff;
+      --text: #000000;
+      --accent: #0077ff;
+      --card-bg: #f4f4f4;
+      --border: #dddddd;
+    }
+
+    body.dark {
+      --bg: #111111;
+      --text: #ffffff;
+      --accent: #3ea6ff;
+      --card-bg: #1b1b1b;
+      --border: #333333;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 1.5rem;
+    }
+
+    button {
+      padding: 0.6rem 1.2rem;
+      margin: 1rem 0;
+      background: var(--accent);
+      border: none;
+      color: #fff;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: transform 0.2s ease;
+    }
+
+    button:hover {
+      transform: scale(1.05);
+    }
+
+    h1 {
+      font-size: 2rem;
+      border-bottom: 2px solid var(--accent);
+      padding-bottom: 0.3rem;
+    }
+
+    .post {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem;
+      margin: 1rem 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      transition: transform 0.3s ease, background 0.3s ease;
+    }
+
+    .post:hover {
+      transform: translateY(-3px);
+      background: var(--card-bg-hover, #eaeaea);
+    }
+
+    .premium {
+      color: var(--accent);
+      font-weight: bold;
+      font-size: 1.1rem;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+    .post-preview {
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+}
+
+.post-preview p {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <script>
+      if (localStorage.theme === 'dark') document.body.classList.add('dark');
+      function toggleTheme() {
+        document.body.classList.toggle('dark');
+        localStorage.theme = document.body.classList.contains('dark') ? 'dark' : 'light';
+      }
+    </script>
+
+    <button onclick="toggleTheme()">🌙 Toggle Theme</button>
+
+    <h1>About This Site</h1>
+    <p>This site allows users to upload and share text, photos, videos, audio, and attachments easily and anonymously.</p>
+    <p>Built with ❤️ by <span class="premium">NafijThePro25 🛠</span></p>
+
+    <div id="recent-posts"></div>
+  </div>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/service-worker.js');
+    }
+
+    fetch('/api/posts')
+      .then(res => res.json())
+      .then(data => {
+        const container = document.getElementById('recent-posts');
+        data.slice(0, 5).forEach(post => {
+          const media = post.media ? `<a href="${post.media}" target="_blank">📎 Attachment</a>` : '';
+          const name = post.user || "Anonymous";
+          const text = post.text || "";
+          container.innerHTML += `
+            <div class="post">
+              <p><strong>${name}</strong><br>${text}<br>${media}</p>
+            </div>`;
+        });
+      });
+  </script>
+</body>
+</html>

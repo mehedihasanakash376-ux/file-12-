@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Search - Nafij's Social Share</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/png" href="/icon.png">
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    .search-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 6rem var(--spacing-xl) var(--spacing-xl);
+      min-height: 100vh;
+    }
+
+    .search-header {
+      text-align: center;
+      margin-bottom: var(--spacing-xl);
+    }
+
+    .search-header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      background: var(--gradient-primary);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: var(--spacing-sm);
+    }
+
+    .search-form {
+      background: var(--card-bg-light);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius);
+      padding: var(--spacing-lg);
+      margin-bottom: var(--spacing-xl);
+      box-shadow: var(--shadow-light);
+    }
+
+    body.dark .search-form {
+      background: var(--card-bg-dark);
+      border-color: var(--border-dark);
+      box-shadow: var(--shadow-dark);
+    }
+
+    .search-input-container {
+      position: relative;
+      margin-bottom: var(--spacing-md);
+    }
+
+    .search-input {
+      width: 100%;
+      padding: var(--spacing-md);
+      padding-left: 3rem;
+      border: 2px solid var(--border-light);
+      border-radius: var(--radius);
+      font-size: 1.1rem;
+      background: var(--bg-light);
+      color: var(--text-light);
+      transition: all var(--transition-fast);
+    }
+
+    body.dark .search-input {
+      border-color: var(--border-dark);
+      background: var(--bg-dark);
+      color: var(--text-dark);
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: var(--spacing-md);
+      top: 50%;
+      transform: translateY(-50%);
+      color: #666;
+      font-size: 1.2rem;
+    }
+
+    body.dark .search-icon {
+      color: #999;
+    }
+
+    .search-filters {
+      display: flex;
+      gap: var(--spacing-sm);
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .filter-btn {
+      background: transparent;
+      border: 2px solid var(--border-light);
+      color: var(--text-light);
+      padding: var(--spacing-xs) var(--spacing-md);
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      font-weight: 500;
+    }
+
+    body.dark .filter-btn {
+      border-color: var(--border-dark);
+      color: var(--text-dark);
+    }
+
+    .filter-btn.active {
+      background: var(--gradient-primary);
+      border-color: var(--primary);
+      color: white;
+    }
+
+    .filter-btn:hover {
+      border-color: var(--primary);
+      transform: translateY(-1px);
+    }
+
+    .search-results {
+      margin-top: var(--spacing-xl);
+    }
+
+    .results-section {
+      margin-bottom: var(--spacing-xl);
+    }
+
+    .results-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--spacing-md);
+      padding-bottom: var(--spacing-sm);
+      border-bottom: 2px solid var(--border-light);
+    }
+
+    body.dark .results-header {
+      border-bottom-color: var(--border-dark);
+    }
+
+    .results-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    .results-count {
+      color: #666;
+      font-size: 0.9rem;
+    }
+
+    body.dark .results-count {
+      color: #999;
+    }
+
+    .user-result {
+      background: var(--card-bg-light);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius);
+      padding: var(--spacing-md);
+      margin-bottom: var(--spacing-md);
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-md);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    body.dark .user-result {
+      background: var(--card-bg-dark);
+      border-color: var(--border-dark);
+    }
+
+    .user-result:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(0, 212, 255, 0.2);
+      border-color: var(--primary);
+    }
+
+    .user-avatar {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: var(--gradient-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+      font-size: 1.2rem;
+      position: relative;
+    }
+
+    .user-info {
+      flex: 1;
+    }
+
+    .user-name {
+      font-weight: 600;
+      font-size: 1.1rem;
+      margin-bottom: var(--spacing-xs);
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-xs);
+    }
+
+    .premium-badge {
+      background: var(--gradient-primary);
+      color: white;
+      padding: 2px 6px;
+      border-radius: 12px;
+      font-size: 0.7rem;
+      font-weight: 600;
+    }
+
+    .user-bio {
+      color: #666;
+      font-size: 0.9rem;
+      margin-bottom: var(--spacing-xs);
+    }
+
+    body.dark .user-bio {
+      color: #999;
+    }
+
+    .user-status {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-sm);
+      font-size: 0.8rem;
+    }
+
+    .online-indicator {
+      width: 8px;
+      height: 8px;
+      background: var(--accent);
+      border-radius: 50%;
+    }
+
+    .offline-indicator {
+      width: 8px;
+      height: 8px;
+      background: #666;
+      border-radius: 50%;
+    }
+
+    .post-result {
+      background: var(--card-bg-light);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius);
+      padding: var(--spacing-md);
+      margin-bottom: var(--spacing-md);
+      transition: all var(--transition-fast);
+    }
+
+    body.dark .post-result {
+      background: var(--card-bg-dark);
+      border-color: var(--border-dark);
+    }
+
+    .post-result:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(0, 212, 255, 0.1);
+    }
+
+    .post-author {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-sm);
+      margin-bottom: var(--spacing-sm);
+    }
+
+    .post-author-avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: var(--gradient-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+      font-size: 0.8rem;
+    }
+
+    .post-author-name {
+      font-weight: 600;
+      color: var(--primary);
+      cursor: pointer;
+    }
+
+    .post-time {
+      color: #666;
+      font-size: 0.8rem;
+      margin-left: auto;
+    }
+
+    body.dark .post-time {
+      color: #999;
+    }
+
+    .post-content {
+      margin-bottom: var(--spacing-sm);
+      word-wrap: break-word;
+    }
+
+    .post-stats {
+      display: flex;
+      gap: var(--spacing-md);
+      color: #666;
+      font-size: 0.8rem;
+    }
+
+    body.dark .post-stats {
+      color: #999;
+    }
+
+    .empty-results {
+      text-align: center;
+      padding: var(--spacing-xl);
+      color: #666;
+    }
+
+    body.dark .empty-results {
+      color: #999;
+    }
+
+    .empty-results h3 {
+      margin-bottom: var(--spacing-sm);
+      font-size: 1.5rem;
+    }
+
+    .loading-results {
+      text-align: center;
+      padding: var(--spacing-xl);
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 40px;
+      height: 40px;
+      border: 4px solid var(--border-light);
+      border-top: 4px solid var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: var(--spacing-md);
+    }
+
+    body.dark .loading-spinner {
+      border-color: var(--border-dark);
+      border-top-color: var(--primary);
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .back-button {
+      position: fixed;
+      top: var(--spacing-md);
+      left: var(--spacing-md);
+      background: var(--gradient-primary);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      transition: all var(--transition-fast);
+      z-index: 1000;
+    }
+
+    .back-button:hover {
+      transform: scale(1.1);
+      box-shadow: var(--shadow-neon);
+    }
+
+    @media (max-width: 768px) {
+      .search-container {
+        padding: 5rem var(--spacing-md) var(--spacing-xl);
+      }
+
+      .search-filters {
+        justify-content: flex-start;
+      }
+
+      .user-result {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .user-avatar {
+        width: 60px;
+        height: 60px;
+        font-size: 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <button class="back-button" onclick="goBack()" aria-label="Go back">←</button>
+
+  <div class="search-container">
+    <div class="search-header">
+      <h1>🔍 Search</h1>
+      <p>Find users and posts in the community</p>
+    </div>
+
+    <div class="search-form">
+      <div class="search-input-container">
+        <span class="search-icon">🔍</span>
+        <input 
+          type="text" 
+          class="search-input" 
+          placeholder="Search for users, posts, or hashtags..." 
+          id="search-input"
+          autocomplete="off"
+        >
+      </div>
+
+      <div class="search-filters">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn" data-filter="users">👥 Users</button>
+        <button class="filter-btn" data-filter="posts">📝 Posts</button>
+      </div>
+    </div>
+
+    <div class="search-results" id="search-results" style="display: none;">
+      <!-- Users Results -->
+      <div class="results-section" id="users-section" style="display: none;">
+        <div class="results-header">
+          <h2 class="results-title">👥 Users</h2>
+          <span class="results-count" id="users-count">0 results</span>
+        </div>
+        <div id="users-results"></div>
+      </div>
+
+      <!-- Posts Results -->
+      <div class="results-section" id="posts-section" style="display: none;">
+        <div class="results-header">
+          <h2 class="results-title">📝 Posts</h2>
+          <span class="results-count" id="posts-count">0 results</span>
+        </div>
+        <div id="posts-results"></div>
+      </div>
+    </div>
+
+    <div class="loading-results" id="loading-results" style="display: none;">
+      <div class="loading-spinner"></div>
+      <p>Searching...</p>
+    </div>
+
+    <div class="empty-results" id="empty-results" style="display: none;">
+      <h3>No results found</h3>
+      <p>Try different keywords or check your spelling</p>
+    </div>
+  </div>
+
+  <script>
+    let searchTimeout;
+    let currentFilter = 'all';
+    let currentUser = null;
+
+    // Theme management
+    if (localStorage.theme === 'dark' || (!localStorage.theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.body.classList.add('dark');
+    }
+
+    function goBack() {
+      window.history.back();
+    }
+
+    // Check authentication
+    async function checkAuth() {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        window.location.href = '/auth.html';
+        return false;
+      }
+
+      try {
+        const response = await fetch('/api/auth/me', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          currentUser = data.user;
+          return true;
+        } else {
+          localStorage.removeItem('token');
+          window.location.href = '/auth.html';
+          return false;
+        }
+      } catch (error) {
+        console.error('Auth check error:', error);
+        return false;
+      }
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', async () => {
+      if (!(await checkAuth())) return;
+
+      setupSearch();
+      setupFilters();
+
+      // Check for URL parameters
+      const urlParams = new URLSearchParams(window.location.search);
+      const query = urlParams.get('q');
+      const type = urlParams.get('type');
+
+      if (query) {
+        document.getElementById('search-input').value = query;
+        if (type && ['users', 'posts'].includes(type)) {
+          setActiveFilter(type);
+        }
+        performSearch(query, currentFilter);
+      }
+    });
+
+    function setupSearch() {
+      const searchInput = document.getElementById('search-input');
+
+      searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.trim();
+        
+        clearTimeout(searchTimeout);
+        
+        if (query.length < 2) {
+          hideResults();
+          return;
+        }
+
+        searchTimeout = setTimeout(() => {
+          performSearch(query, currentFilter);
+        }, 300);
+      });
+
+      searchInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          const query = e.target.value.trim();
+          if (query.length >= 2) {
+            performSearch(query, currentFilter);
+          }
+        }
+      });
+    }
+
+    function setupFilters() {
+      const filterBtns = document.querySelectorAll('.filter-btn');
+      
+      filterBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const filter = btn.dataset.filter;
+          setActiveFilter(filter);
+          
+          const query = document.getElementById('search-input').value.trim();
+          if (query.length >= 2) {
+            performSearch(query, currentFilter);
+          }
+        });
+      });
+    }
+
+    function setActiveFilter(filter) {
+      currentFilter = filter;
+      
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      
+      document.querySelector(`[data-filter="${filter}"]`).classList.add('active');
+    }
+
+    async function performSearch(query, type) {
+      showLoading();
+      
+      try {
+        const headers = {};
+        const token = localStorage.getItem('token');
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const response = await fetch(`/api/search?q=${encodeURIComponent(query)}&type=${type}`, {
+          headers
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          displayResults(data, type);
+        } else {
+          showEmpty();
+        }
+      } catch (error) {
+        console.error('Search error:', error);
+        showEmpty();
+      }
+    }
+
+    function displayResults(data, type) {
+      const { users = [], posts = [] } = data;
+      
+      hideLoading();
+      
+      if (users.length === 0 && posts.length === 0) {
+        showEmpty();
+        return;
+      }
+
+      showResults();
+
+      // Display users
+      if (type === 'all' || type === 'users') {
+        displayUsers(users);
+      } else {
+        document.getElementById('users-section').style.display = 'none';
+      }
+
+      // Display posts
+      if (type === 'all' || type === 'posts') {
+        displayPosts(posts);
+      } else {
+        document.getElementById('posts-section').style.display = 'none';
+      }
+    }
+
+    function displayUsers(users) {
+      const usersSection = document.getElementById('users-section');
+      const usersResults = document.getElementById('users-results');
+      const usersCount = document.getElementById('users-count');
+
+      if (users.length === 0) {
+        usersSection.style.display = 'none';
+        return;
+      }
+
+      usersSection.style.display = 'block';
+      usersCount.textContent = `${users.length} result${users.length !== 1 ? 's' : ''}`;
+
+      usersResults.innerHTML = users.map(user => {
+        const timeAgo = getTimeAgo(new Date(user.lastSeen));
+        
+        return `
+          <div class="user-result" onclick="viewUserProfile('${user.username}')">
+            <div class="user-avatar">
+              ${user.username.charAt(0).toUpperCase()}
+            </div>
+            <div class="user-info">
+              <div class="user-name">
+                ${user.username}
+                ${user.isPremium ? '<span class="premium-badge">✨ Premium</span>' : ''}
+              </div>
+              ${user.bio ? `<div class="user-bio">${user.bio}</div>` : ''}
+              <div class="user-status">
+                <div class="${user.isOnline ? 'online-indicator' : 'offline-indicator'}"></div>
+                <span>${user.isOnline ? 'Online' : `Last seen ${timeAgo}`}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function displayPosts(posts) {
+      const postsSection = document.getElementById('posts-section');
+      const postsResults = document.getElementById('posts-results');
+      const postsCount = document.getElementById('posts-count');
+
+      if (posts.length === 0) {
+        postsSection.style.display = 'none';
+        return;
+      }
+
+      postsSection.style.display = 'block';
+      postsCount.textContent = `${posts.length} result${posts.length !== 1 ? 's' : ''}`;
+
+      postsResults.innerHTML = posts.map(post => {
+        const timeAgo = getTimeAgo(new Date(post.createdAt));
+        const author = post.userId;
+        
+        return `
+          <div class="post-result" onclick="viewPost('${post._id}')">
+            <div class="post-author">
+              <div class="post-author-avatar">
+                ${author.username.charAt(0).toUpperCase()}
+              </div>
+              <span class="post-author-name" onclick="event.stopPropagation(); viewUserProfile('${author.username}')">
+                ${author.username}
+                ${author.isPremium ? '<span class="premium-badge">✨</span>' : ''}
+              </span>
+              <span class="post-time">${timeAgo}</span>
+            </div>
+            <div class="post-content">
+              ${post.text ? post.text.substring(0, 200) + (post.text.length > 200 ? '...' : '') : 'Media post'}
+            </div>
+            <div class="post-stats">
+              <span>❤️ ${post.likes || 0}</span>
+              <span>💬 ${post.comments?.length || 0}</span>
+              ${post.media?.length ? `<span>📎 ${post.media.length} file${post.media.length !== 1 ? 's' : ''}</span>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function viewUserProfile(username) {
+      window.location.href = `/profile.html?user=${username}`;
+    }
+
+    function viewPost(postId) {
+      window.location.href = `/#post-${postId}`;
+    }
+
+    function showLoading() {
+      document.getElementById('loading-results').style.display = 'block';
+      document.getElementById('search-results').style.display = 'none';
+      document.getElementById('empty-results').style.display = 'none';
+    }
+
+    function hideLoading() {
+      document.getElementById('loading-results').style.display = 'none';
+    }
+
+    function showResults() {
+      document.getElementById('search-results').style.display = 'block';
+      document.getElementById('empty-results').style.display = 'none';
+    }
+
+    function hideResults() {
+      document.getElementById('search-results').style.display = 'none';
+      document.getElementById('empty-results').style.display = 'none';
+    }
+
+    function showEmpty() {
+      hideLoading();
+      document.getElementById('empty-results').style.display = 'block';
+      document.getElementById('search-results').style.display = 'none';
+    }
+
+    function getTimeAgo(date) {
+      const now = new Date();
+      const diffInSeconds = Math.floor((now - date) / 1000);
+      
+      if (diffInSeconds < 60) return 'just now';
+      if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+      if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+      if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+      
+      return date.toLocaleDateString();
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile - Nafij's Social Share</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/png" href="/icon.png">
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    .profile-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 6rem var(--spacing-xl) var(--spacing-xl);
+      min-height: 100vh;
+    }
+
+    .profile-header {
+      background: var(--card-bg-light);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-large);
+      padding: var(--spacing-xl);
+      margin-bottom: var(--spacing-xl);
+      box-shadow: var(--shadow-light);
+      position: relative;
+      overflow: hidden;
+    }
+
+    body.dark .profile-header {
+      background: var(--card-bg-dark);
+      border-color: var(--border-dark);
+      box-shadow: var(--shadow-dark);
+    }
+
+    .profile-header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: var(--gradient-primary);
+    }
+
+    .profile-info {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-lg);
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .profile-avatar {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: var(--gradient-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 2.5rem;
+      font-weight: 700;
+      position: relative;
+      box-shadow: 0 8px 25px rgba(0, 212, 255, 0.3);
+    }
+
+    .online-indicator {
+      position: absolute;
+      bottom: 5px;
+      right: 5px;
+      width: 20px;
+      height: 20px;
+      background: var(--accent);
+      border: 3px solid var(--card-bg-light);
+      border-radius: 50%;
+    }
+
+    body.dark .online-indicator {
+      border-color: var(--card-bg-dark);
+    }
+
+    .profile-details {
+      flex: 1;
+    }
+
+    .profile-name {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: var(--spacing-xs);
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-sm);
+    }
+
+    .premium-badge {
+      background: var(--gradient-primary);
+      color: white;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-xs);
+    }
+
+    .profile-status {
+      color: #666;
+      font-size: 0.9rem;
+      margin-bottom: var(--spacing-sm);
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-xs);
+    }
+
+    body.dark .profile-status {
+      color: #999;
+    }
+
+    .profile-bio {
+      color: var(--text-light);
+      line-height: 1.6;
+      margin-bottom: var(--spacing-md);
+    }
+
+    body.dark .profile-bio {
+      color: var(--text-dark);
+    }
+
+    .profile-stats {
+      display: flex;
+      gap: var(--spacing-lg);
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .stat-item {
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--primary);
+      display: block;
+    }
+
+    .stat-label {
+      font-size: 0.8rem;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    body.dark .stat-label {
+      color: #999;
+    }
+
+    .profile-actions {
+      display: flex;
+      gap: var(--spacing-sm);
+      flex-wrap: wrap;
+    }
+
+    .posts-section {
+      margin-top: var(--spacing-xl);
+    }
+
+    .posts-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--spacing-lg);
+      padding-bottom: var(--spacing-sm);
+      border-bottom: 2px solid var(--border-light);
+    }
+
+    body.dark .posts-header {
+      border-bottom-color: var(--border-dark);
+    }
+
+    .posts-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    .posts-count {
+      color: #666;
+      font-size: 0.9rem;
+    }
+
+    body.dark .posts-count {
+      color: #999;
+    }
+
+    .posts-grid {
+      display: grid;
+      gap: var(--spacing-lg);
+    }
+
+    .post-card {
+      background: var(--card-bg-light);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius);
+      padding: var(--spacing-lg);
+      transition: all var(--transition-smooth);
+      animation: fadeInUp 0.5s ease-out;
+    }
+
+    body.dark .post-card {
+      background: var(--card-bg-dark);
+      border-color: var(--border-dark);
+    }
+
+    .post-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 212, 255, 0.2);
+    }
+
+    .post-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--spacing-md);
+    }
+
+    .post-time {
+      color: #666;
+      font-size: 0.8rem;
+    }
+
+    body.dark .post-time {
+      color: #999;
+    }
+
+    .post-content {
+      margin-bottom: var(--spacing-md);
+      word-wrap: break-word;
+      line-height: 1.6;
+    }
+
+    .post-media {
+      margin: var(--spacing-md) 0;
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .post-media img,
+    .post-media video {
+      width: 100%;
+      max-height: 300px;
+      object-fit: cover;
+    }
+
+    .post-stats {
+      display: flex;
+      gap: var(--spacing-md);
+      color: #666;
+      font-size: 0.9rem;
+      padding-top: var(--spacing-md);
+      border-top: 1px solid var(--border-light);
+    }
+
+    body.dark .post-stats {
+      color: #999;
+      border-top-color: var(--border-dark);
+    }
+
+    .empty-posts {
+      text-align: center;
+      padding: var(--spacing-xl);
+      color: #666;
+    }
+
+    body.dark .empty-posts {
+      color: #999;
+    }
+
+    .empty-posts h3 {
+      margin-bottom: var(--spacing-sm);
+      font-size: 1.5rem;
+    }
+
+    .loading-posts {
+      text-align: center;
+      padding: var(--spacing-xl);
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 40px;
+      height: 40px;
+      border: 4px solid var(--border-light);
+      border-top: 4px solid var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: var(--spacing-md);
+    }
+
+    body.dark .loading-spinner {
+      border-color: var(--border-dark);
+      border-top-color: var(--primary);
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .back-button {
+      position: fixed;
+      top: var(--spacing-md);
+      left: var(--spacing-md);
+      background: var(--gradient-primary);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      transition: all var(--transition-fast);
+      z-index: 1000;
+    }
+
+    .back-button:hover {
+      transform: scale(1.1);
+      box-shadow: var(--shadow-neon);
+    }
+
+    @media (max-width: 768px) {
+      .profile-container {
+        padding: 5rem var(--spacing-md) var(--spacing-xl);
+      }
+
+      .profile-info {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .profile-avatar {
+        width: 80px;
+        height: 80px;
+        font-size: 2rem;
+      }
+
+      .profile-stats {
+        justify-content: center;
+      }
+
+      .profile-actions {
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <button class="back-button" onclick="goBack()" aria-label="Go back">←</button>
+
+  <div class="profile-container">
+    <div class="profile-header">
+      <div class="profile-info">
+        <div class="profile-avatar" id="profile-avatar">
+          👤
+        </div>
+        <div class="profile-details">
+          <div class="profile-name" id="profile-name">
+            Loading...
+          </div>
+          <div class="profile-status" id="profile-status">
+            Loading...
+          </div>
+          <div class="profile-bio" id="profile-bio" style="display: none;">
+          </div>
+        </div>
+      </div>
+
+      <div class="profile-stats">
+        <div class="stat-item">
+          <span class="stat-number" id="posts-stat">0</span>
+          <span class="stat-label">Posts</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number" id="likes-stat">0</span>
+          <span class="stat-label">Likes</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number" id="joined-stat">-</span>
+          <span class="stat-label">Joined</span>
+        </div>
+      </div>
+
+      <div class="profile-actions" id="profile-actions">
+        <!-- Actions will be populated based on user -->
+      </div>
+    </div>
+
+    <div class="posts-section">
+      <div class="posts-header">
+        <h2 class="posts-title">📝 Posts</h2>
+        <span class="posts-count" id="posts-count">Loading...</span>
+      </div>
+
+      <div class="loading-posts" id="loading-posts">
+        <div class="loading-spinner"></div>
+        <p>Loading posts...</p>
+      </div>
+
+      <div class="posts-grid" id="posts-grid" style="display: none;">
+        <!-- Posts will be populated here -->
+      </div>
+
+      <div class="empty-posts" id="empty-posts" style="display: none;">
+        <h3>No posts yet</h3>
+        <p>This user hasn't shared anything yet.</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentUser = null;
+    let profileUser = null;
+    let currentPage = 0;
+    let isLoading = false;
+    let hasMore = true;
+
+    // Theme management
+    if (localStorage.theme === 'dark' || (!localStorage.theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.body.classList.add('dark');
+    }
+
+    function goBack() {
+      window.history.back();
+    }
+
+    // Check authentication
+    async function checkAuth() {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        window.location.href = '/auth.html';
+        return false;
+      }
+
+      try {
+        const response = await fetch('/api/auth/me', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          currentUser = data.user;
+          return true;
+        } else {
+          localStorage.removeItem('token');
+          window.location.href = '/auth.html';
+          return false;
+        }
+      } catch (error) {
+        console.error('Auth check error:', error);
+        return false;
+      }
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', async () => {
+      if (!(await checkAuth())) return;
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const username = urlParams.get('user');
+
+      if (!username) {
+        window.location.href = '/';
+        return;
+      }
+
+      await loadUserProfile(username);
+      await loadUserPosts(username);
+    });
+
+    async function loadUserProfile(username) {
+      try {
+        const headers = {};
+        const token = localStorage.getItem('token');
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const response = await fetch(`/api/users/${username}`, { headers });
+
+        if (!response.ok) {
+          if (response.status === 404) {
+            showError('User not found');
+          } else {
+            showError('Failed to load user profile');
+          }
+          return;
+        }
+
+        const data = await response.json();
+        profileUser = data.user;
+        displayUserProfile(data.user, data.totalPosts);
+        
+        // Update page title
+        document.title = `${data.user.username} - Nafij's Social Share`;
+        
+      } catch (error) {
+        console.error('Error loading user profile:', error);
+        showError('Failed to load user profile');
+      }
+    }
+
+    function displayUserProfile(user, totalPosts) {
+      const avatar = document.getElementById('profile-avatar');
+      const name = document.getElementById('profile-name');
+      const status = document.getElementById('profile-status');
+      const bio = document.getElementById('profile-bio');
+      const postsCount = document.getElementById('posts-count');
+      const actions = document.getElementById('profile-actions');
+
+      // Avatar
+      avatar.textContent = user.username.charAt(0).toUpperCase();
+      if (user.isOnline) {
+        avatar.innerHTML += '<div class="online-indicator"></div>';
+      }
+
+      // Name with premium badge
+      name.innerHTML = `
+        ${user.username}
+        ${user.isPremium ? '<span class="premium-badge">✨ Premium</span>' : ''}
+      `;
+
+      // Status
+      const timeAgo = getTimeAgo(new Date(user.lastSeen));
+      status.innerHTML = `
+        <div class="${user.isOnline ? 'online-indicator' : 'offline-indicator'}" style="width: 8px; height: 8px; border-radius: 50%; background: ${user.isOnline ? 'var(--accent)' : '#666'};"></div>
+        ${user.isOnline ? 'Online' : `Last seen ${timeAgo}`}
+      `;
+
+      // Bio
+      if (user.bio) {
+        bio.textContent = user.bio;
+        bio.style.display = 'block';
+      }
+
+      // Stats
+      document.getElementById('posts-stat').textContent = totalPosts;
+      document.getElementById('joined-stat').textContent = new Date(user.createdAt).toLocaleDateString('en-US', { 
+        month: 'short', 
+        year: 'numeric' 
+      });
+
+      // Posts count
+      postsCount.textContent = `${totalPosts} post${totalPosts !== 1 ? 's' : ''}`;
+
+      // Actions
+      if (currentUser.id === user._id) {
+        // Own profile
+        actions.innerHTML = `
+          <button class="btn btn-primary" onclick="editProfile()">✏️ Edit Profile</button>
+        `;
+      } else {
+        // Other user's profile
+        actions.innerHTML = `
+          <button class="btn btn-primary" onclick="startChat('${user._id}')">💬 Message</button>
+          <button class="btn btn-outline" onclick="followUser('${user._id}')">👥 Follow</button>
+        `;
+      }
+    }
+
+    async function loadUserPosts(username, page = 0) {
+      if (isLoading || (!hasMore && page > 0)) return;
+      
+      isLoading = true;
+
+      try {
+        const headers = {};
+        const token = localStorage.getItem('token');
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const response = await fetch(`/api/users/${username}?page=${page}&limit=10`, { headers });
+
+        if (response.ok) {
+          const data = await response.json();
+          
+          if (page === 0) {
+            displayPosts(data.posts);
+            hasMore = data.hasMore;
+          } else {
+            appendPosts(data.posts);
+            hasMore = data.hasMore;
+          }
+
+          // Calculate total likes
+          const totalLikes = data.posts.reduce((sum, post) => sum + (post.likes || 0), 0);
+          document.getElementById('likes-stat').textContent = totalLikes;
+        }
+      } catch (error) {
+        console.error('Error loading user posts:', error);
+      } finally {
+        isLoading = false;
+        document.getElementById('loading-posts').style.display = 'none';
+      }
+    }
+
+    function displayPosts(posts) {
+      const postsGrid = document.getElementById('posts-grid');
+      const emptyPosts = document.getElementById('empty-posts');
+
+      if (posts.length === 0) {
+        postsGrid.style.display = 'none';
+        emptyPosts.style.display = 'block';
+        return;
+      }
+
+      postsGrid.style.display = 'block';
+      emptyPosts.style.display = 'none';
+      
+      postsGrid.innerHTML = posts.map(post => createPostHTML(post)).join('');
+    }
+
+    function appendPosts(posts) {
+      const postsGrid = document.getElementById('posts-grid');
+      postsGrid.innerHTML += posts.map(post => createPostHTML(post)).join('');
+    }
+
+    function createPostHTML(post) {
+      const timeAgo = getTimeAgo(new Date(post.createdAt));
+      
+      let mediaHTML = '';
+      if (post.media && post.media.length > 0) {
+        const firstMedia = post.media[0];
+        if (firstMedia.mimetype?.startsWith('image/')) {
+          mediaHTML = `
+            <div class="post-media">
+              <img src="${firstMedia.url}" alt="Post image" onclick="viewPost('${post._id}')" style="cursor: pointer;" />
+            </div>
+          `;
+        } else if (firstMedia.mimetype?.startsWith('video/')) {
+          mediaHTML = `
+            <div class="post-media">
+              <video controls onclick="viewPost('${post._id}')" style="cursor: pointer;">
+                <source src="${firstMedia.url}" type="${firstMedia.mimetype}">
+              </video>
+            </div>
+          `;
+        }
+      }
+
+      return `
+        <div class="post-card" onclick="viewPost('${post._id}')">
+          <div class="post-header">
+            <span class="post-time">${timeAgo}</span>
+          </div>
+          
+          ${post.text ? `<div class="post-content">${post.text}</div>` : ''}
+          
+          ${mediaHTML}
+          
+          <div class="post-stats">
+            <span>❤️ ${post.likes || 0}</span>
+            <span>💬 ${post.comments?.length || 0}</span>
+            ${post.media?.length ? `<span>📎 ${post.media.length}</span>` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    function viewPost(postId) {
+      window.location.href = `/#post-${postId}`;
+    }
+
+    function startChat(userId) {
+      window.location.href = `/chat.html?user=${userId}`;
+    }
+
+    function followUser(userId) {
+      // Follow functionality would be implemented here
+      showNotification('Follow feature coming soon!', 'info');
+    }
+
+    function editProfile() {
+      // Edit profile functionality would be implemented here
+      showNotification('Edit profile feature coming soon!', 'info');
+    }
+
+    function showError(message) {
+      const container = document.querySelector('.profile-container');
+      container.innerHTML = `
+        <div class="empty-posts">
+          <h3>❌ Error</h3>
+          <p>${message}</p>
+          <button class="btn btn-primary" onclick="goBack()">Go Back</button>
+        </div>
+      `;
+    }
+
+    function showNotification(message, type = 'info') {
+      const notification = document.createElement('div');
+      notification.className = `notification ${type}`;
+      notification.textContent = message;
+      
+      document.body.appendChild(notification);
+      
+      setTimeout(() => {
+        notification.classList.add('show');
+      }, 100);
+      
+      setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 300);
+      }, 3000);
+    }
+
+    function getTimeAgo(date) {
+      const now = new Date();
+      const diffInSeconds = Math.floor((now - date) / 1000);
+      
+      if (diffInSeconds < 60) return 'just now';
+      if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+      if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+      if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+      
+      return date.toLocaleDateString();
+    }
+
+    // Infinite scroll
+    window.addEventListener('scroll', () => {
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 1000) {
+        if (hasMore && !isLoading && profileUser) {
+          currentPage++;
+          loadUserPosts(profileUser.username, currentPage);
+        }
+      }
+    });
+  </script>
+</body>
+</html>

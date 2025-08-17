@@ -1,0 +1,105 @@
+{
+  "name": "Nafij's Social Share",
+  "short_name": "SocialShare",
+  "description": "Advanced social sharing platform with offline support and media streaming",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0f0f23",
+  "theme_color": "#00d4ff",
+  "categories": ["social", "utilities", "productivity", "entertainment", "photo", "video"],
+  "lang": "en",
+  "dir": "ltr",
+  "scope": "/",
+  "id": "nafij-social-share",
+  "prefer_related_applications": false,
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "72x72 96x96 128x128 144x144 152x152 192x192 384x384 512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/icon.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Social feed view on desktop"
+    },
+    {
+      "src": "/icon.png",
+      "sizes": "750x1334",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Mobile social feed"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Create Post",
+      "short_name": "Post",
+      "description": "Create a new post with media",
+      "url": "/",
+      "icons": [
+        {
+          "src": "/icon.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "View Feed",
+      "short_name": "Feed",
+      "description": "Browse the latest posts",
+      "url": "/#feed",
+      "icons": [
+        {
+          "src": "/icon.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "All Posts",
+      "short_name": "Browse",
+      "description": "Browse all posts",
+      "url": "/all",
+      "icons": [
+        {
+          "src": "/icon.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
+  "related_applications": [],
+  "features": [
+    "Cross Platform",
+    "Background Sync",
+    "Offline Support",
+    "Push Notifications",
+    "File Sharing",
+    "Real-time Updates"
+  ]
+}
