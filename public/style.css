@@ -135,6 +135,7 @@ body.dark .header {
   margin: 0 auto;
   padding: 6rem var(--spacing-xl) var(--spacing-xl);
   min-height: 100vh;
+  display: none; /* Hidden by default until authenticated */
 }
 
 /* Cards */
