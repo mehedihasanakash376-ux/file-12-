@@ -931,7 +931,7 @@
         const response = await fetch(`/api/posts/${postId}/comments/${commentId}/like`, {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${localStorage.getToken('token')}`
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
         });
         
@@ -1144,7 +1144,7 @@
       // Trigger background sync
       if ('serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype) {
         navigator.serviceWorker.ready.then(registration => {
-          return registration.sync.register('background-post');
+          registration.sync.register('background-post');
         });
       }
     });
@@ -1211,7 +1211,7 @@
 
       // Listen for messages from service worker
       navigator.serviceWorker.addEventListener('message', (event) => {
-        const { data } = event.data;
+        const data = event.data;
         
         if (data.type === 'SYNC_COMPLETE') {
           showNotification(data.message, 'success');
@@ -1269,8 +1269,8 @@
       // Check if user is logged in
       const token = localStorage.getItem('token');
       if (!token) {
-        // Show login prompt instead of redirecting immediately
-        showLoginPrompt();
+        // Redirect to auth page if not authenticated
+        window.location.href = '/auth.html';
         return;
       }
       
@@ -1285,15 +1285,15 @@
           // Initialize socket connection
           initSocket();
           
-          // Don't load posts on main page - user needs to navigate to feed
-          document.getElementById('feed-section').style.display = 'none';
+          // Load posts by default
+          loadPosts(true);
+          document.getElementById('feed-section').style.display = 'block';
           lastPostTime = new Date();
         } else {
           // Invalid token, redirect to auth
           localStorage.removeItem('token');
           localStorage.removeItem('user');
           window.location.href = '/auth.html';
-          return;
         }
       });
       
@@ -1347,19 +1347,6 @@
         });
       });
     });
-    
-    function showLoginPrompt() {
-      document.querySelector('.container').innerHTML = `
-        <div class="card" style="text-align: center; margin-top: 2rem;">
-          <h2>🚀 Welcome to Nafij's Social Share</h2>
-          <p>Please login or create an account to continue</p>
-          <div style="margin-top: 2rem;">
-            <a href="/auth.html" class="btn btn-primary" style="margin-right: 1rem;">🔑 Login</a>
-            <a href="/auth.html" class="btn btn-outline">✨ Sign Up</a>
-          </div>
-        </div>
-      `;
-    }
     
     // Logout function
     function logout() {
