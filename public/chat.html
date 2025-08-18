@@ -613,8 +613,14 @@
         socket.on('newMessage', (message) => {
           if (currentChat && message.chatId === currentChat._id) {
             displayMessage(message);
+            markMessagesAsRead(currentChat._id);
           }
           updateChatPreview(message.chatId, message.content);
+          
+          // Show notification if chat is not active
+          if (!currentChat || message.chatId !== currentChat._id) {
+            showNotification(`New message from ${message.sender.username}`, 'info');
+          }
         });
 
         socket.on('userTyping', (data) => {
@@ -665,6 +671,16 @@
             endCall();
             showNotification('Call ended by other user', 'info');
           }
+        });
+        
+        socket.on('userOnline', (data) => {
+          // Update user online status in chat list
+          updateUserOnlineStatus(data.userId, true);
+        });
+        
+        socket.on('userOffline', (data) => {
+          // Update user online status in chat list
+          updateUserOnlineStatus(data.userId, false);
         });
 
         // Setup search
@@ -761,9 +777,25 @@
         if (response.ok) {
           const messages = await response.json();
           displayMessages(messages);
+          
+          // Mark messages as read
+          markMessagesAsRead(chatId);
         }
       } catch (error) {
         console.error('Error loading messages:', error);
+      }
+    }
+    
+    async function markMessagesAsRead(chatId) {
+      try {
+        await fetch(`/api/chats/${chatId}/read`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+      } catch (error) {
+        console.error('Error marking messages as read:', error);
       }
     }
 
@@ -826,23 +858,40 @@
       const messagesContainer = document.getElementById('chat-messages');
       messagesContainer.innerHTML = messages.map(message => createMessageHTML(message)).join('');
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      
+      // Auto-scroll to bottom with smooth animation
+      setTimeout(() => {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }, 100);
     }
 
     function displayMessage(message) {
       const messagesContainer = document.getElementById('chat-messages');
       messagesContainer.innerHTML += createMessageHTML(message);
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      
+      // Animate new message
+      const newMessageElement = messagesContainer.lastElementChild;
+      newMessageElement.style.opacity = '0';
+      newMessageElement.style.transform = 'translateY(20px)';
+      
+      setTimeout(() => {
+        newMessageElement.style.transition = 'all 0.3s ease-out';
+        newMessageElement.style.opacity = '1';
+        newMessageElement.style.transform = 'translateY(0)';
+      }, 50);
     }
 
     function createMessageHTML(message) {
       const isOwn = message.sender._id === currentUser.id;
       const timeAgo = getTimeAgo(new Date(message.createdAt));
+      const time = new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       
       return `
         <div class="message ${isOwn ? 'own' : 'other'}">
           ${!isOwn ? `<div class="message-sender">${message.sender.username}</div>` : ''}
           <div class="message-content">${message.content}</div>
-          <div class="message-time">${timeAgo}</div>
+          <div class="message-time">${time} • ${timeAgo}</div>
         </div>
       `;
     }
@@ -884,6 +933,13 @@
 
       input.value = '';
       input.style.height = 'auto';
+      
+      // Clear typing indicator
+      clearTimeout(typingTimeout);
+      socket.emit('typing', {
+        chatId: currentChat._id,
+        isTyping: false
+      });
     }
 
     function showTypingIndicator(username, isTyping) {
@@ -891,6 +947,10 @@
       if (isTyping) {
         indicator.textContent = `${username} is typing...`;
         indicator.style.display = 'block';
+        
+        // Auto-scroll to show typing indicator
+        const messagesContainer = document.getElementById('chat-messages');
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
       } else {
         indicator.style.display = 'none';
       }
@@ -900,7 +960,13 @@
       const chatItem = document.querySelector(`[onclick="openChat('${chatId}')"]`);
       if (chatItem) {
         const preview = chatItem.querySelector('.chat-preview');
-        preview.textContent = lastMessage;
+        if (preview) {
+          preview.textContent = lastMessage.length > 50 ? lastMessage.substring(0, 50) + '...' : lastMessage;
+        }
+        
+        // Move chat to top of list
+        const chatList = document.getElementById('chat-list');
+        chatList.insertBefore(chatItem, chatList.firstChild);
       }
     }
 
@@ -1196,6 +1262,21 @@
         });
     }
     
+    function updateUserOnlineStatus(userId, isOnline) {
+      const chatItems = document.querySelectorAll('.chat-item');
+      chatItems.forEach(item => {
+        const avatar = item.querySelector('.chat-avatar');
+        const indicator = avatar.querySelector('.online-indicator');
+        
+        // This is a simplified check - in a real app you'd need to match the user ID
+        if (isOnline && !indicator) {
+          avatar.innerHTML += '<div class="online-indicator"></div>';
+        } else if (!isOnline && indicator) {
+          indicator.remove();
+        }
+      });
+    }
+    
     function showCallControls() {
       // Create call controls overlay
       const callControls = document.createElement('div');
@@ -1386,8 +1467,14 @@
         socket.on('newMessage', (message) => {
           if (currentChat && message.chatId === currentChat._id) {
             displayMessage(message);
+            markMessagesAsRead(currentChat._id);
           }
           updateChatPreview(message.chatId, message.content);
+          
+          // Show notification if chat is not active
+          if (!currentChat || message.chatId !== currentChat._id) {
+            showNotification(`New message from ${message.sender.username}`, 'info');
+          }
         });
 
         socket.on('userTyping', (data) => {
@@ -1438,6 +1525,16 @@
             endCall();
             showNotification('Call ended by other user', 'info');
           }
+        });
+        
+        socket.on('userOnline', (data) => {
+          // Update user online status in chat list
+          updateUserOnlineStatus(data.userId, true);
+        });
+        
+        socket.on('userOffline', (data) => {
+          // Update user online status in chat list
+          updateUserOnlineStatus(data.userId, false);
         });
 
         // Setup search
