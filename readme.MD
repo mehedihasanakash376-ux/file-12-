@@ -1,93 +1,17 @@
-1. User Identification
+Uncaught SyntaxError: Illegal return statement (at (index):709:7) and also not redirect mee on auth or nothing showing just showing blank page and also the massage not keep when i refresh it goes whyyy make sure  login info and massages and everything save to mongodb as json and username when someone login cheek username and keep back their chats and also the video or photos everything file save to internam storage and  link saved to mongodb show there  and also the when i call someone there is no end call options and also the call time not showing and show a call page like whatsapp facebook and Use WebRTC for peer-to-peer calls.
 
-When posting, ask only for a username (required text input, max 20 chars).
+Use a signaling server (Node.js + Express + Socket.IO).
 
-Store username in localStorage so user doesn't need to retype every time.
+Add STUN (Google STUN server) and TURN (coturn or managed TURN) for NAT traversal.
 
-No passwords or auth flows. Anonymous by default if no username given.
+Must be low latency (like WhatsApp/Instagram calls). No noticeable delay.
 
-2. Posting & Media
+Audio only (no video). Optimize for speech with Opus codec, mono channel, 24–32 kbps.
 
-Posts consist of: username, text (multi-line with emojis), optional media files.
+Must support two users in a private room (1-to-1 call).
 
-Allow uploading multiple files per post: images (jpg/png/webp), videos (mp4/webm), audio (mp3/wav), documents.
+Calls should work across devices and browsers (desktop + mobile).
 
-Display previews: images show thumbnails, videos show a playable preview with controls and download button, audio shows waveform player or native controls + download.
+Users should be able to start call, accept, hang up.
 
-Show upload progress with cancel button.
-
-Allow deleting posts locally if user is the author (match stored username).
-
-Posts timestamped, shown in relative format ("2 hours ago").
-
-3. Feed & Interactions
-
-Infinite scroll on feed (load more posts as user scrolls).
-
-Real-time-ish update: poll server every 15s or use SSE/WebSocket to append new posts live with fade-in animation.
-
-Likes with animated heart button, reaction count updates immediately.
-
-Comments with nested replies (max 3 levels).
-
-Comments input with username autofill (from localStorage), editable before submit.
-
-Reactions on posts & comments (at least: ❤️, 😂, 👍).
-
-Users can delete their own comments/posts (based on username).
-
-Clicking media opens a fullscreen/lightbox view with smooth transitions and download options.
-
-4. Theming & UI
-
-Dark/light toggle with animated smooth transition, remember preference in localStorage.
-
-Use a vibrant, modern digital palette with neon blues, purples, greens.
-
-Use smooth animations on hover, click, and transitions (fade, slide, scale).
-
-Responsive design from mobile to desktop.
-
-Floating "Scroll to top" button with fade in/out on scroll.
-
-Sticky header with app name and theme toggle button.
-
-Use accessible semantic HTML and ARIA roles.
-
-
-
-9. Extra UX Enhancements
-
-Typing indicator on comment box (optional).
-
-Copy post link button.
-
-Show "X likes" with small user avatar thumbnails in tooltip.
-
-Hashtag highlighting in posts with clickable search (basic).
-
-Show post owner “Premium” or “Pro” badge if username matches (optional).
-
-10. Accessibility & SEO
-
-Use semantic tags (<main>, <article>, <section>, <button>, <form>, etc.)
-
-Proper alt attributes on images.
-
-Keyboard navigable UI.
-
-Meta tags for SEO and social sharing.
-
-updated colours 
-
-Modern, clean, animated front-end (vanilla JS or framework of choice).
-
-Updated service worker and manifest.json for full PWA support.
-
-Fully functional media uploads/downloads.
-
-Real-time-like feed update mechanism (poll or SSE).
-
-User experience without login, just username per post stored locally.
-
-Responsive, accessible, and highly performant.
+Use HTTPS/WSS for signaling.
