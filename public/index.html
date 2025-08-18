@@ -1270,7 +1270,8 @@
       // Check if user is logged in
       const token = localStorage.getItem('token');
       if (!token) {
-        window.location.href = '/auth.html';
+        // Show login prompt instead of redirecting immediately
+        showLoginPrompt();
         return;
       }
       
@@ -1316,6 +1317,9 @@
       // Update offline count periodically
       setInterval(updateOfflineCount, 30000); // Every 30 seconds
       
+      // Show main content only after authentication
+      document.querySelector('.container').style.display = 'block';
+      
       // Close reactions menu when clicking outside
       document.addEventListener('click', (e) => {
         if (!e.target.closest('.reactions-dropdown')) {
@@ -1344,6 +1348,19 @@
         });
       });
     });
+    
+    function showLoginPrompt() {
+      document.querySelector('.container').innerHTML = `
+        <div class="card" style="text-align: center; margin-top: 2rem;">
+          <h2>🚀 Welcome to Nafij's Social Share</h2>
+          <p>Please login or create an account to continue</p>
+          <div style="margin-top: 2rem;">
+            <a href="/auth.html" class="btn btn-primary" style="margin-right: 1rem;">🔑 Login</a>
+            <a href="/auth.html" class="btn btn-outline">✨ Sign Up</a>
+          </div>
+        </div>
+      `;
+    }
     
     // Logout function
     function logout() {
