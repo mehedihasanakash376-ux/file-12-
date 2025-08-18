@@ -440,6 +440,7 @@
         if (response.ok) {
           localStorage.setItem('token', data.token);
           localStorage.setItem('user', JSON.stringify(data.user));
+          localStorage.setItem('username', data.user.username);
           showSuccess('Login successful! Redirecting...');
           
           setTimeout(() => {
@@ -487,6 +488,7 @@
         if (response.ok) {
           localStorage.setItem('token', data.token);
           localStorage.setItem('user', JSON.stringify(data.user));
+          localStorage.setItem('username', data.user.username);
           showSuccess('Account created successfully! Redirecting...');
           
           setTimeout(() => {

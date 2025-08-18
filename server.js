@@ -855,7 +855,7 @@ app.post('/api/posts', upload.array('files', 10), async (req, res) => {
     }));
 
     const post = new Post({
-      user: user.username, // Keep for backward compatibility
+      user: user.username,
       userId: user._id,
       text: text || '',
       media,
@@ -1097,10 +1097,63 @@ app.get('/api/chats/:chatId/messages', authenticateToken, async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(parseInt(limit))
       .skip(parseInt(page) * parseInt(limit));
+app.post('/api/chats/:chatId/messages', authenticateToken, upload.single('file'), async (req, res) => {
+  try {
+    const { chatId } = req.params;
+    const { content, messageType = 'text' } = req.body;
+    
+    // Verify user is participant in chat
+    const chat = await Chat.findOne({
+      _id: chatId,
+      participants: req.user._id
+    });
 
+    if (!chat) {
+      return res.status(404).json({ error: 'Chat not found' });
+    }
     res.json(messages.reverse());
+    let media = null;
+    if (req.file) {
+      media = {
+        filename: req.file.filename,
+        originalName: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+        url: `/uploads/${req.file.filename}`
+      };
+    }
   } catch (error) {
+    const message = new Message({
+      chatId,
+      sender: req.user._id,
+      content: content || (media ? `Sent ${media.originalName}` : ''),
+      messageType,
+      media
+    });
     console.error('Get messages error:', error);
+    await message.save();
+    await message.populate('sender', 'username isPremium avatar');
+    res.status(500).json({ error: 'Server error' });
+    // Update chat last message
+    await Chat.findByIdAndUpdate(chatId, {
+      lastMessage: message.content,
+      lastMessageTime: new Date()
+    });
+  }
+    // Emit to all users in the chat via socket
+    io.to(chatId).emit('newMessage', {
+      _id: message._id,
+      chatId: message.chatId,
+      sender: message.sender,
+      content: message.content,
+      messageType: message.messageType,
+      media: message.media,
+      createdAt: message.createdAt
+    });
+});
+    res.status(201).json(message);
+  } catch (error) {
+    console.error('Send message error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
