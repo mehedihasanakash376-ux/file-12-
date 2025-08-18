@@ -40,10 +40,16 @@
       padding: 10px;
       margin-top: 15px;
       background: #f9f9f9;
+      word-wrap: break-word;
+      overflow-wrap: anywhere;
     }
     body.dark .post-preview {
       background: #1a1a1a;
       border-color: #444;
+    }
+    .post-preview p {
+      white-space: pre-wrap;
+      word-break: break-word;
     }
     a {
       color: var(--text);
@@ -54,33 +60,21 @@
       margin-top: 10px;
       border-radius: 6px;
     }
-    .post-preview {
-  word-wrap: break-word;
-  overflow-wrap: anywhere;
-}
-
-.post-preview p {
-  white-space: pre-wrap;
-  word-break: break-word;
-}
   </style>
-      const token = localStorage.getItem('token');
-      if (!token) {
-        alert('Please login to like posts');
-        return;
-      }
-      
 </head>
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+<body>
 <div class="container">
   <script>
     if (localStorage.theme === 'dark') document.body.classList.add('dark');
     function toggleTheme() {
       document.body.classList.toggle('dark');
       localStorage.theme = document.body.classList.contains('dark') ? 'dark' : 'light';
+    }
+    
+    // Check authentication
+    const token = localStorage.getItem('token');
+    if (!token) {
+      window.location.href = '/auth.html';
     }
   </script>
 
@@ -104,8 +98,6 @@
     navigator.serviceWorker.register('/service-worker.js');
   }
 
-  // Check authentication first
-  const token = localStorage.getItem('token');
   const headers = {};
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
@@ -127,41 +119,29 @@
       data.forEach(post => {
         const postId = post._id;
         const likes = post.likes || 0;
+        const isPremium = post.userId?.isPremium || false;
         const name = post.userId?.username || post.user || "Anonymous";
         const text = post.text || "";
-        const isPremium = post.userId?.isPremium || false;
         
         let mediaHTML = '';
-          const fileType = post.media?.[0]?.mimetype || "";
-        const name = post.user || "Anonymous";
-        const text = post.text || "";
-        const fileLink = post.media?.startsWith("uploads/") ? `/${post.media}` : post.media;
-        const fileType = post.fileType || "";
-          if (post.media && post.media.length > 0) {
-            const firstMedia = post.media[0];
-            const mediaUrl = firstMedia.url;
-            
-            if (firstMedia.mimetype?.startsWith("image/")) {
+        if (post.media && post.media.length > 0) {
+          const firstMedia = post.media[0];
+          const mediaUrl = firstMedia.url;
+          
+          if (firstMedia.mimetype?.startsWith("image/")) {
             mediaHTML = `
-                <img src="${mediaUrl}" alt="Image" />
-                <br><a href="${mediaUrl}" download target="_blank">⬇️ Download Image</a>
+              <img src="${mediaUrl}" alt="Image" />
+              <br><a href="${mediaUrl}" download target="_blank">⬇️ Download Image</a>
             `;
-          if (fileType.startsWith("image/")) {
+          } else if (firstMedia.mimetype?.startsWith("video/")) {
             mediaHTML = `
-              <img src="${fileLink}" alt="Image" />
-                <video controls><source src="${mediaUrl}" type="${firstMedia.mimetype}"></video>
-                <br><a href="${mediaUrl}" download target="_blank">⬇️ Download Video</a>
-          } else if (fileType.startsWith("video/")) {
-            } else if (firstMedia.mimetype?.startsWith("audio/")) {
-              <video controls><source src="${fileLink}" type="${fileType}"></video>
-                <audio controls><source src="${mediaUrl}" type="${firstMedia.mimetype}"></audio>
-                <br><a href="${mediaUrl}" download target="_blank">⬇️ Download Audio</a>
-          } else if (fileType.startsWith("audio/")) {
-            mediaHTML = `
+              <video controls><source src="${mediaUrl}" type="${firstMedia.mimetype}"></video>
+              <br><a href="${mediaUrl}" download target="_blank">⬇️ Download Video</a>
             `;
-              <audio controls><source src="${fileLink}" type="${fileType}"></audio>
+          } else if (firstMedia.mimetype?.startsWith("audio/")) {
             mediaHTML = `
-                <a href="${mediaUrl}" download target="_blank">📎 Download ${firstMedia.originalName}</a>
+              <audio controls><source src="${mediaUrl}" type="${firstMedia.mimetype}"></audio>
+              <br><a href="${mediaUrl}" download target="_blank">⬇️ Download Audio</a>
             `;
             `;
           } else {
@@ -205,7 +185,6 @@
     .then(res => {
       if (res.ok) {
         const countSpan = document.getElementById(`like-count-${postId}`);
-        countSpan.textContent = parseInt(countSpan.textContent) + 1;
       } else {
         alert("Failed to like post.");
       }
@@ -216,49 +195,3 @@
     });
   }
 </script>
-</body>
-</html>
-            mediaHTML = `
-              <a href="${fileLink}" download target="_blank">📎 Download Attachment</a>
-            `;
-          }
-        }
-
-        const el = document.createElement('div');
-        el.className = 'post-preview';
-        el.innerHTML = `
-          <p><strong>${name}</strong>${text ? `: ${text}` : ""}</p>
-          const name = post.userId?.username || post.user || "Anonymous";
-          <p>
-            ❤️ <span id="like-count-${postId}">${likes}</span>
-            <button onclick="likePost('${postId}')">Like</button>
-          </p>
-        `;
-        container.appendChild(el);
-        document.getElementById('post-previews').innerHTML = "<p>Error loading posts. Please try again later.</p>";
-      });
-    })
-    .catch(err => {
-      console.error('Error loading posts:', err);
-    });
-
-  function likePost(postId) {
-    fetch(`/api/posts/${postId}/love`, {
-      method: 'POST'
-    })
-    .then(res => {
-      if (res.ok) {
-        const countSpan = document.getElementById(`like-count-${postId}`);
-        countSpan.textContent = parseInt(countSpan.textContent) + 1;
-      } else {
-        alert("Failed to like post.");
-      }
-    })
-    .catch(err => {
-      console.error("Like error:", err);
-      alert("Error while liking the post.");
-    });
-  }
-</script>
-</body>
-</html>

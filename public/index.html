@@ -1269,8 +1269,8 @@
       // Check if user is logged in
       const token = localStorage.getItem('token');
       if (!token) {
-        // Show auth prompt instead of redirecting immediately
-        showAuthPrompt();
+        // Redirect to auth page immediately
+        window.location.href = '/auth.html';
         return;
       }
       
@@ -1296,13 +1296,15 @@
           // Invalid token, redirect to auth
           localStorage.removeItem('token');
           localStorage.removeItem('user');
-          showAuthPrompt();
+          localStorage.removeItem('username');
+          window.location.href = '/auth.html';
         }
       }).catch(error => {
         console.error('Error getting current user:', error);
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        showAuthPrompt();
+        localStorage.removeItem('username');
+        window.location.href = '/auth.html';
       });
       
       updateOfflineStatus();
@@ -1352,22 +1354,6 @@
         });
       });
     });
-    
-    // Show auth prompt instead of redirecting
-    function showAuthPrompt() {
-      const container = document.querySelector('.container');
-      container.style.display = 'block';
-      container.innerHTML = `
-        <div class="card" style="text-align: center; padding: 3rem;">
-          <h2>🔐 Authentication Required</h2>
-          <p>Please log in to access Nafij's Social Share</p>
-          <div style="margin-top: 2rem;">
-            <a href="/auth.html" class="btn btn-primary" style="margin-right: 1rem;">🚀 Login</a>
-            <a href="/auth.html" class="btn btn-outline">✨ Register</a>
-          </div>
-        </div>
-      `;
-    }
     
     // Logout function
     function logout() {

@@ -1181,13 +1181,13 @@
 
       currentCall = null;
       document.getElementById('call-modal').style.display = 'none';
+      showNotification('Call declined', 'info');
     }
 
     function handleCallResponse(data) {
       if (data.accepted) {
         // Initialize WebRTC here
         initializeWebRTC();
-        showNotification(`${data.responderName} accepted the call`, 'success');
       } else {
         showNotification(`${data.responderName} declined the call`, 'info');
         currentCall = null;
@@ -1201,15 +1201,25 @@
       const configuration = {
         iceServers: [
           { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' }
+          { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'stun:stun2.l.google.com:19302' }
         ]
       };
 
       const peerConnection = new RTCPeerConnection(configuration);
       currentCall.peerConnection = peerConnection;
 
-      // Get user media (audio only)
-      navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+      // Get user media with optimized audio settings
+      navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          sampleRate: 48000,
+          channelCount: 1
+        }, 
+        video: false 
+      })
         .then(stream => {
           currentCall.localStream = stream;
           stream.getTracks().forEach(track => {
@@ -1221,6 +1231,7 @@
             if (!currentCall.remoteAudio) {
               currentCall.remoteAudio = document.createElement('audio');
               currentCall.remoteAudio.autoplay = true;
+              currentCall.remoteAudio.volume = 1.0;
               document.body.appendChild(currentCall.remoteAudio);
             }
             currentCall.remoteAudio.srcObject = event.streams[0];
@@ -1236,10 +1247,24 @@
               });
             }
           };
+          
+          // Handle connection state changes
+          peerConnection.onconnectionstatechange = () => {
+            console.log('Connection state:', peerConnection.connectionState);
+            if (peerConnection.connectionState === 'connected') {
+              showNotification('Call connected! 🎙️', 'success');
+            } else if (peerConnection.connectionState === 'disconnected' || 
+                       peerConnection.connectionState === 'failed') {
+              endCall();
+            }
+          };
 
           // Create offer if initiator
           if (currentCall.isInitiator) {
-            peerConnection.createOffer()
+            peerConnection.createOffer({
+              offerToReceiveAudio: true,
+              offerToReceiveVideo: false
+            })
               .then(offer => {
                 return peerConnection.setLocalDescription(offer);
               })
@@ -1253,12 +1278,11 @@
 
           // Show call controls
           showCallControls();
-
-          showNotification('Audio call connected! 🎙️', 'success');
         })
         .catch(error => {
           console.error('Error accessing microphone:', error);
-          showNotification('Could not access microphone', 'error');
+          showNotification('Could not access microphone. Please check permissions.', 'error');
+          endCall();
         });
     }
     
@@ -1283,44 +1307,51 @@
       callControls.id = 'call-controls';
       callControls.style.cssText = `
         position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
         background: linear-gradient(135deg, #1a1a2e, #16213e);
-        padding: 2rem;
-        border-radius: var(--radius-large);
         z-index: 2000;
-        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
         color: white;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-        backdrop-filter: blur(20px);
-        border: 1px solid rgba(0, 212, 255, 0.3);
-        min-width: 300px;
+        text-align: center;
       `;
       
       const partnerName = currentCall.partner ? currentCall.partner.username : currentCall.callerName;
       const callStartTime = Date.now();
       
       callControls.innerHTML = `
-        <div style="margin-bottom: 1rem;">
-          <div style="width: 80px; height: 80px; border-radius: 50%; background: var(--gradient-primary); display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 2rem; font-weight: bold;">
+        <div style="margin-bottom: 2rem;">
+          <div style="width: 120px; height: 120px; border-radius: 50%; background: var(--gradient-primary); display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; font-size: 3rem; font-weight: bold; box-shadow: 0 10px 30px rgba(0, 212, 255, 0.5);">
             ${partnerName.charAt(0).toUpperCase()}
           </div>
-          <h3 style="margin: 0 0 0.5rem 0; font-size: 1.5rem;">${partnerName}</h3>
-          <p id="call-status" style="margin: 0 0 0.5rem 0; color: var(--accent);">Connected</p>
-          <p id="call-timer" style="margin: 0; font-size: 1.2rem; font-weight: bold; color: white;">00:00</p>
+          <h2 style="margin: 0 0 0.5rem 0; font-size: 2rem;">${partnerName}</h2>
+          <p id="call-status" style="margin: 0 0 1rem 0; color: var(--accent); font-size: 1.1rem;">Connecting...</p>
+          <p id="call-timer" style="margin: 0; font-size: 1.5rem; font-weight: bold; color: white;">00:00</p>
         </div>
-        <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 2rem;">
-          <button onclick="toggleMute()" id="mute-btn" style="background: rgba(255, 255, 255, 0.2); color: white; border: none; padding: 1rem; border-radius: 50%; cursor: pointer; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+        <div style="display: flex; gap: 2rem; justify-content: center; margin-top: 3rem;">
+          <button onclick="toggleMute()" id="mute-btn" style="background: rgba(255, 255, 255, 0.2); color: white; border: none; padding: 1.2rem; border-radius: 50%; cursor: pointer; width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; transition: all 0.3s ease;">
             🎤
           </button>
-          <button onclick="endCall()" style="background: var(--error); color: white; border: none; padding: 1rem; border-radius: 50%; cursor: pointer; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
-          📵 End Call
+          <button onclick="endCall()" style="background: #ff4757; color: white; border: none; padding: 1.2rem; border-radius: 50%; cursor: pointer; width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; transition: all 0.3s ease;">
+            📵
           </button>
         </div>
       `;
       
       document.body.appendChild(callControls);
+      
+      // Update status to connected after a short delay
+      setTimeout(() => {
+        const statusElement = document.getElementById('call-status');
+        if (statusElement) {
+          statusElement.textContent = 'Connected';
+        }
+      }, 2000);
       
       // Start call timer
       const timer = setInterval(() => {
@@ -1351,7 +1382,11 @@
           const muteBtn = document.getElementById('mute-btn');
           if (muteBtn) {
             muteBtn.innerHTML = isMuted ? '🔇' : '🎤';
-            muteBtn.style.background = isMuted ? 'var(--error)' : 'rgba(255, 255, 255, 0.2)';
+            muteBtn.style.background = isMuted ? '#ff4757' : 'rgba(255, 255, 255, 0.2)';
+            muteBtn.style.transform = 'scale(0.9)';
+            setTimeout(() => {
+              muteBtn.style.transform = 'scale(1)';
+            }, 150);
           }
           
           showNotification(isMuted ? 'Microphone muted' : 'Microphone unmuted', 'info');
@@ -1379,7 +1414,11 @@
         // Remove call controls
         const callControls = document.getElementById('call-controls');
         if (callControls) {
-          callControls.remove();
+          callControls.style.opacity = '0';
+          callControls.style.transform = 'scale(0.9)';
+          setTimeout(() => {
+            callControls.remove();
+          }, 300);
         }
         
         // Notify other user about call end
@@ -1389,6 +1428,7 @@
         }
         
         currentCall = null;
+        isMuted = false;
         showNotification('Call ended', 'info');
       }
     }

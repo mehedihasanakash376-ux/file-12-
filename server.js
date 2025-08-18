@@ -503,39 +503,26 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Handle WebRTC signaling
-  socket.on('webrtc-offer', (data) => {
-    const { targetUserId, offer } = data;
+  // Handle call ended
+  socket.on('callEnded', (data) => {
+    const { targetUserId } = data;
     const targetSocketId = connectedUsers.get(targetUserId);
     
     if (targetSocketId) {
-      io.to(targetSocketId).emit('webrtc-offer', {
-        offer,
-        senderId: socket.userId
+      io.to(targetSocketId).emit('callEnded', {
+        endedBy: socket.userId
       });
     }
   });
   
-  socket.on('webrtc-answer', (data) => {
-    const { targetUserId, answer } = data;
+  // Handle call cancelled
+  socket.on('callCancelled', (data) => {
+    const { targetUserId } = data;
     const targetSocketId = connectedUsers.get(targetUserId);
     
     if (targetSocketId) {
-      io.to(targetSocketId).emit('webrtc-answer', {
-        answer,
-        senderId: socket.userId
-      });
-    }
-  });
-  
-  socket.on('webrtc-ice-candidate', (data) => {
-    const { targetUserId, candidate } = data;
-    const targetSocketId = connectedUsers.get(targetUserId);
-    
-    if (targetSocketId) {
-      io.to(targetSocketId).emit('webrtc-ice-candidate', {
-        candidate,
-        senderId: socket.userId
+      io.to(targetSocketId).emit('callCancelled', {
+        cancelledBy: socket.userId
       });
     }
   });
