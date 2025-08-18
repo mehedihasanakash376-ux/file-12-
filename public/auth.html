@@ -444,7 +444,10 @@
           showSuccess('Login successful! Redirecting...');
           
           setTimeout(() => {
-            window.location.href = '/';
+            // Check if there's a redirect URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const redirect = urlParams.get('redirect') || '/';
+            window.location.href = redirect;
           }, 1000);
         } else {
           showError(data.error || 'Login failed');
@@ -492,7 +495,10 @@
           showSuccess('Account created successfully! Redirecting...');
           
           setTimeout(() => {
-            window.location.href = '/';
+            // Check if there's a redirect URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const redirect = urlParams.get('redirect') || '/';
+            window.location.href = redirect;
           }, 1000);
         } else {
           showError(data.error || 'Registration failed');
@@ -513,16 +519,21 @@
         }
       }).then(response => {
         if (response.ok) {
-          window.location.href = '/';
+          // Check if there's a redirect URL
+          const urlParams = new URLSearchParams(window.location.search);
+          const redirect = urlParams.get('redirect') || '/';
+          window.location.href = redirect;
         } else {
           // Token invalid, clear storage
           localStorage.removeItem('token');
           localStorage.removeItem('user');
+          localStorage.removeItem('username');
         }
       }).catch(() => {
         // Network error, clear storage
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        localStorage.removeItem('username');
       });
     }
   </script>

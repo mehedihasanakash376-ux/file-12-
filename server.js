@@ -1105,6 +1105,44 @@ app.get('/api/chats/:chatId/messages', authenticateToken, async (req, res) => {
   }
 });
 
+// Mark messages as read
+app.post('/api/chats/:chatId/read', authenticateToken, async (req, res) => {
+  try {
+    const { chatId } = req.params;
+    
+    // Verify user is participant in chat
+    const chat = await Chat.findOne({
+      _id: chatId,
+      participants: req.user._id
+    });
+
+    if (!chat) {
+      return res.status(404).json({ error: 'Chat not found' });
+    }
+
+    // Mark all unread messages as read
+    await Message.updateMany(
+      { 
+        chatId,
+        'readBy.user': { $ne: req.user._id }
+      },
+      {
+        $push: {
+          readBy: {
+            user: req.user._id,
+            readAt: new Date()
+          }
+        }
+      }
+    );
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Mark messages as read error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Send message to chat
 app.post('/api/chats/:chatId/messages', authenticateToken, upload.single('file'), async (req, res) => {
   try {

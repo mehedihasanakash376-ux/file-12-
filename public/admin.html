@@ -124,7 +124,20 @@
   <div id="posts"></div>
 
   <script>
+    // Check authentication
+    function checkAuth() {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('Please login first');
+        window.location.href = '/auth.html?redirect=' + encodeURIComponent(window.location.pathname);
+        return false;
+      }
+      return true;
+    }
+    
     async function loadPosts() {
+      if (!checkAuth()) return;
+      
       const password = document.getElementById('password').value;
       
       if (!password) {
@@ -132,57 +145,87 @@
         return;
       }
       
-      const res = await fetch('/api/admin/posts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password })
-      });
+      try {
+        const res = await fetch('/api/admin/posts', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({ password })
+        });
 
-      if (!res.ok) {
-        const error = await res.text();
-        return alert('Wrong password or error: ' + error);
+        if (!res.ok) {
+          const error = await res.text();
+          return alert('Wrong password or error: ' + error);
+        }
+
+        const posts = await res.json();
+        const container = document.getElementById('posts');
+        container.innerHTML = '';
+
+        if (posts.length === 0) {
+          container.innerHTML = '<p>No posts found.</p>';
+          return;
+        }
+
+        posts.forEach(post => {
+          const el = document.createElement('div');
+          el.className = 'post';
+          
+          const userName = post.userId?.username || post.user || 'Anonymous';
+          const mediaLinks = post.media && post.media.length > 0 
+            ? post.media.map(file => `<a href="${file.url}" target="_blank">📎 ${file.originalName}</a>`).join('<br>')
+            : '';
+          
+          el.innerHTML = `
+            <b>${userName}</b><br>
+            ${post.text || 'No text content'}<br>
+            ${mediaLinks ? mediaLinks + '<br>' : ''}
+            <small>Posted: ${new Date(post.createdAt).toLocaleString()}</small><br>
+            <button onclick="deletePost('${post._id}')">🗑️ Delete</button>
+          `;
+          container.appendChild(el);
+        });
+      } catch (error) {
+        console.error('Error loading posts:', error);
+        alert('Error loading posts: ' + error.message);
       }
-
-      const posts = await res.json();
-      const container = document.getElementById('posts');
-      container.innerHTML = '';
-
-      posts.forEach(post => {
-        const el = document.createElement('div');
-        el.className = 'post';
-        
-        const userName = post.userId?.username || post.user || 'Anonymous';
-        const mediaLinks = post.media && post.media.length > 0 
-          ? post.media.map(file => `<a href="${file.url}" target="_blank">📎 ${file.originalName}</a>`).join('<br>')
-          : '';
-        
-        el.innerHTML = `
-          <b>${userName}</b><br>
-          ${post.text}<br>
-          ${mediaLinks ? mediaLinks + '<br>' : ''}
-          <button onclick="deletePost('${post._id}')">🗑️ Delete</button>
-        `;
-        container.appendChild(el);
-      });
     }
 
     async function deletePost(id) {
+      if (!checkAuth()) return;
+      
       const password = document.getElementById('password').value;
       if (!confirm('Delete this post?')) return;
 
-      const res = await fetch(`/api/admin/posts/${id}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password })
-      });
+      try {
+        const res = await fetch(`/api/admin/posts/${id}`, {
+          method: 'DELETE',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({ password })
+        });
 
-      if (!res.ok) {
-        const error = await res.text();
-        return alert('Failed to delete post: ' + error);
+        if (!res.ok) {
+          const error = await res.text();
+          return alert('Failed to delete post: ' + error);
+        }
+
+        alert('Post deleted successfully');
+        loadPosts();
+      } catch (error) {
+        console.error('Error deleting post:', error);
+        alert('Error deleting post: ' + error.message);
       }
-
-      loadPosts();
     }
+    
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', () => {
+      checkAuth();
+    });
   </script>
 
 </div>
