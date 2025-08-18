@@ -1352,7 +1352,6 @@
     function logout() {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      localStorage.removeItem('username');
       if (socket) {
         socket.disconnect();
       }

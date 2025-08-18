@@ -1169,24 +1169,77 @@
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        background: var(--card-bg-dark);
+        background: linear-gradient(135deg, #1a1a2e, #16213e);
         padding: 2rem;
         border-radius: var(--radius-large);
         z-index: 2000;
         text-align: center;
         color: white;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(0, 212, 255, 0.3);
+        min-width: 300px;
       `;
       
       const partnerName = currentCall.partner ? currentCall.partner.username : currentCall.callerName;
+      const callStartTime = Date.now();
+      
       callControls.innerHTML = `
-        <h3>🎙️ Call with ${partnerName}</h3>
-        <p>Call in progress...</p>
-        <button onclick="endCall()" style="background: var(--error); color: white; border: none; padding: 1rem 2rem; border-radius: var(--radius); cursor: pointer; margin-top: 1rem;">
+        <div style="margin-bottom: 1rem;">
+          <div style="width: 80px; height: 80px; border-radius: 50%; background: var(--gradient-primary); display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 2rem; font-weight: bold;">
+            ${partnerName.charAt(0).toUpperCase()}
+          </div>
+          <h3 style="margin: 0 0 0.5rem 0; font-size: 1.5rem;">${partnerName}</h3>
+          <p id="call-status" style="margin: 0 0 0.5rem 0; color: var(--accent);">Connected</p>
+          <p id="call-timer" style="margin: 0; font-size: 1.2rem; font-weight: bold; color: white;">00:00</p>
+        </div>
+        <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 2rem;">
+          <button onclick="toggleMute()" id="mute-btn" style="background: rgba(255, 255, 255, 0.2); color: white; border: none; padding: 1rem; border-radius: 50%; cursor: pointer; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+            🎤
+          </button>
+          <button onclick="endCall()" style="background: var(--error); color: white; border: none; padding: 1rem; border-radius: 50%; cursor: pointer; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
           📵 End Call
-        </button>
+          </button>
+        </div>
       `;
       
       document.body.appendChild(callControls);
+      
+      // Start call timer
+      const timer = setInterval(() => {
+        if (!document.getElementById('call-controls')) {
+          clearInterval(timer);
+          return;
+        }
+        
+        const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
+        const minutes = Math.floor(elapsed / 60);
+        const seconds = elapsed % 60;
+        const timerElement = document.getElementById('call-timer');
+        if (timerElement) {
+          timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+      }, 1000);
+    }
+    
+    let isMuted = false;
+    
+    function toggleMute() {
+      if (currentCall && currentCall.localStream) {
+        const audioTrack = currentCall.localStream.getAudioTracks()[0];
+        if (audioTrack) {
+          audioTrack.enabled = !audioTrack.enabled;
+          isMuted = !audioTrack.enabled;
+          
+          const muteBtn = document.getElementById('mute-btn');
+          if (muteBtn) {
+            muteBtn.innerHTML = isMuted ? '🔇' : '🎤';
+            muteBtn.style.background = isMuted ? 'var(--error)' : 'rgba(255, 255, 255, 0.2)';
+          }
+          
+          showNotification(isMuted ? 'Microphone muted' : 'Microphone unmuted', 'info');
+        }
+      }
     }
     
     function endCall() {
@@ -1210,6 +1263,12 @@
         const callControls = document.getElementById('call-controls');
         if (callControls) {
           callControls.remove();
+        }
+        
+        // Notify other user about call end
+        const targetId = currentCall.partner ? currentCall.partner._id : currentCall.callerId;
+        if (socket && targetId) {
+          socket.emit('callEnded', { targetUserId: targetId });
         }
         
         currentCall = null;
