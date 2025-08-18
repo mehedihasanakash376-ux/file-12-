@@ -1097,6 +1097,15 @@ app.get('/api/chats/:chatId/messages', authenticateToken, async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(parseInt(limit))
       .skip(parseInt(page) * parseInt(limit));
+
+    res.json(messages.reverse());
+  } catch (error) {
+    console.error('Get messages error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Send message to chat
 app.post('/api/chats/:chatId/messages', authenticateToken, upload.single('file'), async (req, res) => {
   try {
     const { chatId } = req.params;
@@ -1111,7 +1120,7 @@ app.post('/api/chats/:chatId/messages', authenticateToken, upload.single('file')
     if (!chat) {
       return res.status(404).json({ error: 'Chat not found' });
     }
-    res.json(messages.reverse());
+
     let media = null;
     if (req.file) {
       media = {
@@ -1122,7 +1131,7 @@ app.post('/api/chats/:chatId/messages', authenticateToken, upload.single('file')
         url: `/uploads/${req.file.filename}`
       };
     }
-  } catch (error) {
+
     const message = new Message({
       chatId,
       sender: req.user._id,
@@ -1130,16 +1139,16 @@ app.post('/api/chats/:chatId/messages', authenticateToken, upload.single('file')
       messageType,
       media
     });
-    console.error('Get messages error:', error);
+
     await message.save();
     await message.populate('sender', 'username isPremium avatar');
-    res.status(500).json({ error: 'Server error' });
+
     // Update chat last message
     await Chat.findByIdAndUpdate(chatId, {
       lastMessage: message.content,
       lastMessageTime: new Date()
     });
-  }
+
     // Emit to all users in the chat via socket
     io.to(chatId).emit('newMessage', {
       _id: message._id,
@@ -1150,10 +1159,112 @@ app.post('/api/chats/:chatId/messages', authenticateToken, upload.single('file')
       media: message.media,
       createdAt: message.createdAt
     });
-});
+
     res.status(201).json(message);
   } catch (error) {
     console.error('Send message error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Add reaction to post
+app.post('/api/posts/:id/reactions', authenticateToken, async (req, res) => {
+  try {
+    const { type } = req.body;
+    const validTypes = ['love', 'laugh', 'like', 'wow', 'sad', 'angry'];
+    
+    if (!validTypes.includes(type)) {
+      return res.status(400).json({ error: 'Invalid reaction type' });
+    }
+
+    const post = await Post.findById(req.params.id);
+    if (!post) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
+
+    // Initialize reactions if not exists
+    if (!post.reactions) {
+      post.reactions = {
+        love: 0, laugh: 0, like: 0, wow: 0, sad: 0, angry: 0, total: 0
+      };
+    }
+
+    post.reactions[type] += 1;
+    post.reactions.total += 1;
+    await post.save();
+
+    res.json({ reactions: post.reactions });
+  } catch (error) {
+    console.error('Add reaction error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Add reply to comment
+app.post('/api/posts/:postId/comments/:commentId/replies', authenticateToken, async (req, res) => {
+  try {
+    const { postId, commentId } = req.params;
+    const { text } = req.body;
+    
+    if (!text || text.trim().length === 0) {
+      return res.status(400).json({ error: 'Reply text is required' });
+    }
+
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
+
+    const comment = post.comments.id(commentId);
+    if (!comment) {
+      return res.status(404).json({ error: 'Comment not found' });
+    }
+
+    const reply = {
+      user: req.user.username,
+      userId: req.user._id,
+      text: text.trim(),
+      createdAt: new Date()
+    };
+
+    comment.replies.push(reply);
+    await post.save();
+    await post.populate('comments.replies.userId', 'username isPremium avatar');
+
+    const newReply = comment.replies[comment.replies.length - 1];
+    res.status(201).json(newReply);
+  } catch (error) {
+    console.error('Add reply error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Like comment
+app.post('/api/posts/:postId/comments/:commentId/like', authenticateToken, async (req, res) => {
+  try {
+    const { postId, commentId } = req.params;
+    
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
+
+    const comment = post.comments.id(commentId);
+    if (!comment) {
+      return res.status(404).json({ error: 'Comment not found' });
+    }
+
+    const userLiked = comment.likedBy.includes(req.user._id);
+    
+    if (!userLiked) {
+      comment.likedBy.push(req.user._id);
+      comment.likes += 1;
+    }
+
+    await post.save();
+    res.json({ likes: comment.likes, liked: true });
+  } catch (error) {
+    console.error('Like comment error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });

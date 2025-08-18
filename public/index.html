@@ -1274,6 +1274,9 @@
         return;
       }
       
+      // Show container immediately to prevent blank page
+      document.querySelector('.container').style.display = 'block';
+      
       // Initialize user and socket
       getCurrentUser().then(user => {
         if (user) {
@@ -1295,6 +1298,11 @@
           localStorage.removeItem('user');
           window.location.href = '/auth.html';
         }
+      }).catch(error => {
+        console.error('Error getting current user:', error);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/auth.html';
       });
       
       updateOfflineStatus();
@@ -1315,9 +1323,6 @@
       
       // Update offline count periodically
       setInterval(updateOfflineCount, 30000); // Every 30 seconds
-      
-      // Show main content only after authentication
-      document.querySelector('.container').style.display = 'block';
       
       // Close reactions menu when clicking outside
       document.addEventListener('click', (e) => {

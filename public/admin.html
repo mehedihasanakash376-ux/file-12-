@@ -126,13 +126,22 @@
   <script>
     async function loadPosts() {
       const password = document.getElementById('password').value;
+      
+      if (!password) {
+        alert('Please enter admin password');
+        return;
+      }
+      
       const res = await fetch('/api/admin/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password })
       });
 
-      if (!res.ok) return alert('Wrong password or error');
+      if (!res.ok) {
+        const error = await res.text();
+        return alert('Wrong password or error: ' + error);
+      }
 
       const posts = await res.json();
       const container = document.getElementById('posts');
@@ -141,10 +150,16 @@
       posts.forEach(post => {
         const el = document.createElement('div');
         el.className = 'post';
+        
+        const userName = post.userId?.username || post.user || 'Anonymous';
+        const mediaLinks = post.media && post.media.length > 0 
+          ? post.media.map(file => `<a href="${file.url}" target="_blank">📎 ${file.originalName}</a>`).join('<br>')
+          : '';
+        
         el.innerHTML = `
-          <b>${post.user}</b><br>
+          <b>${userName}</b><br>
           ${post.text}<br>
-          ${post.media ? `<a href="/${post.media}" target="_blank">📎 View File</a><br>` : ''}
+          ${mediaLinks ? mediaLinks + '<br>' : ''}
           <button onclick="deletePost('${post._id}')">🗑️ Delete</button>
         `;
         container.appendChild(el);
@@ -162,7 +177,8 @@
       });
 
       if (!res.ok) {
-        return alert('Failed to delete post');
+        const error = await res.text();
+        return alert('Failed to delete post: ' + error);
       }
 
       loadPosts();

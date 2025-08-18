@@ -136,13 +136,39 @@
       navigator.serviceWorker.register('/service-worker.js');
     }
 
-    fetch('/api/posts')
+    // Check authentication first
+    const token = localStorage.getItem('token');
+    const headers = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
       .then(res => res.json())
       .then(data => {
         const container = document.getElementById('recent-posts');
-        data.slice(0, 5).forEach(post => {
-          const media = post.media ? `<a href="${post.media}" target="_blank">📎 Attachment</a>` : '';
-          const name = post.user || "Anonymous";
+        if (Array.isArray(data) && data.length > 0) {
+          data.forEach(post => {
+            const media = post.media && post.media.length > 0 
+              ? post.media.map(file => `<a href="${file.url}" target="_blank">📎 ${file.originalName}</a>`).join(' ')
+              : '';
+            const name = post.userId?.username || post.user || "Anonymous";
+            const text = post.text || "";
+            container.innerHTML += `
+              <div class="post">
+                <p><strong>${name}</strong><br>${text}<br>${media}</p>
+              </div>`;
+          });
+        } else {
+          container.innerHTML = '<div class="post"><p>No recent posts available.</p></div>';
+        }
+      })
+      .catch(err => {
+        console.error('Error loading posts:', err);
+        const container = document.getElementById('recent-posts');
+        container.innerHTML = '<div class="post"><p>Error loading posts.</p></div>';
+      });
+  </script>
+</body>
+</html>
           const text = post.text || "";
           container.innerHTML += `
             <div class="post">
@@ -153,3 +179,5 @@
   </script>
 </body>
 </html>
+
+    fetch('/api/posts?limit=5', { headers })
