@@ -657,7 +657,7 @@
         const timeAgo = getTimeAgo(new Date(user.lastSeen));
         
         return `
-          <div class="user-result" onclick="viewUserProfile('${user.username}')">
+          <div class="user-result">
             <div class="user-avatar">
               ${user.username.charAt(0).toUpperCase()}
             </div>
@@ -672,9 +672,17 @@
                 <span>${user.isOnline ? 'Online' : `Last seen ${timeAgo}`}</span>
               </div>
             </div>
+            <div style="display: flex; gap: 0.5rem; margin-left: auto;">
+              <button class="btn btn-outline" onclick="viewUserProfile('${user.username}')" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">👤 Profile</button>
+              <button class="btn btn-primary" onclick="startChat('${user._id}')" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">💬 Chat</button>
+            </div>
           </div>
         `;
       }).join('');
+    }
+    
+    function startChat(userId) {
+      window.location.href = `/chat.html?user=${userId}`;
     }
 
     function displayPosts(posts) {

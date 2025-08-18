@@ -749,7 +749,7 @@ app.get('/api/search', optionalAuth, async (req, res) => {
       }
       
       users = await User.find(userQuery)
-      .select('username isPremium avatar bio isOnline lastSeen')
+      .select('_id username isPremium avatar bio isOnline lastSeen')
       .limit(limitNum)
       .skip(skip)
       .sort({ isPremium: -1, username: 1 });
@@ -878,11 +878,15 @@ app.post('/api/posts', upload.array('files', 10), async (req, res) => {
 // Get posts
 app.get('/api/posts', optionalAuth, async (req, res) => {
   try {
-    const { page = 0, limit = 10, userId } = req.query;
+    const { page = 0, limit = 10, userId, since } = req.query;
     
     let query = {};
     if (userId) {
       query.userId = userId;
+    }
+    
+    if (since) {
+      query.createdAt = { $gt: new Date(since) };
     }
 
     const posts = await Post.find(query)
