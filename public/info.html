@@ -142,6 +142,8 @@
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
+    
+    fetch('/api/posts?limit=5', { headers })
       .then(res => res.json())
       .then(data => {
         const container = document.getElementById('recent-posts');
