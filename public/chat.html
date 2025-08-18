@@ -659,6 +659,13 @@
             await currentCall.peerConnection.addIceCandidate(data.candidate);
           }
         });
+        
+        socket.on('callEnded', (data) => {
+          if (currentCall) {
+            endCall();
+            showNotification('Call ended by other user', 'info');
+          }
+        });
 
         // Setup search
         setupSearch();
@@ -1394,6 +1401,13 @@
         socket.on('webrtc-ice-candidate', async (data) => {
           if (currentCall && currentCall.peerConnection) {
             await currentCall.peerConnection.addIceCandidate(data.candidate);
+          }
+        });
+        
+        socket.on('callEnded', (data) => {
+          if (currentCall) {
+            endCall();
+            showNotification('Call ended by other user', 'info');
           }
         });
 

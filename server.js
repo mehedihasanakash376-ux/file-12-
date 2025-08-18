@@ -855,7 +855,7 @@ app.post('/api/posts', upload.array('files', 10), async (req, res) => {
     }));
 
     const post = new Post({
-      user: user.username,
+      user: user.username, // Keep for backward compatibility
       userId: user._id,
       text: text || '',
       media,
