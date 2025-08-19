@@ -23,7 +23,7 @@ const io = socketIo(server, {
 });
 
 // Trust proxy for Render deployment
-app.set('trust proxy', true);
+app.set('trust proxy', 1);
 
 const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGODB_URI;
@@ -41,7 +41,10 @@ app.use(helmet({
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 200, // limit each IP to 200 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.'
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  trustProxy: true
 });
 app.use('/api/', limiter);
 

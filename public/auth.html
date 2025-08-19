@@ -447,7 +447,7 @@
             // Check if there's a redirect URL
             const urlParams = new URLSearchParams(window.location.search);
             const redirect = urlParams.get('redirect') || '/';
-            window.location.replace(redirect); // Use replace to avoid back button issues
+            window.location.href = redirect;
           }, 1000);
         } else {
           showError(data.error || 'Login failed');
@@ -498,7 +498,7 @@
             // Check if there's a redirect URL
             const urlParams = new URLSearchParams(window.location.search);
             const redirect = urlParams.get('redirect') || '/';
-            window.location.replace(redirect); // Use replace to avoid back button issues
+            window.location.href = redirect;
           }, 1000);
         } else {
           showError(data.error || 'Registration failed');

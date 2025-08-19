@@ -1270,28 +1270,12 @@
         return;
       }
       
-      // Show loading state
-      document.body.innerHTML = `
-        <div style="display: flex; justify-content: center; align-items: center; height: 100vh; background: var(--bg-light); color: var(--text-light);">
-          <div style="text-align: center;">
-            <div style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 1rem;"></div>
-            <p>Loading...</p>
-          </div>
-        </div>
-        <style>
-          @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        </style>
-      `;
+      // Show container immediately for logged in users
+      document.querySelector('.container').style.display = 'block';
       
       // Initialize user and socket
       getCurrentUser().then(user => {
         if (user) {
-          // Restore the original page content
-          location.reload();
-          
-          // Show container after successful auth
-          document.querySelector('.container').style.display = 'block';
-          
           // Update username input with current user
           const usernameInput = document.getElementById('username');
           if (usernameInput) {
