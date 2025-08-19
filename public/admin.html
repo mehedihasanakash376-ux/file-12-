@@ -129,7 +129,7 @@
       const token = localStorage.getItem('token');
       if (!token) {
         alert('Please login first');
-        window.location.href = '/auth.html?redirect=' + encodeURIComponent(window.location.pathname);
+        window.location.href = '/auth.html?redirect=' + encodeURIComponent('/admin.html');
         return false;
       }
       return true;

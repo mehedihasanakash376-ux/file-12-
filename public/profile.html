@@ -454,7 +454,7 @@
     async function checkAuth() {
       const token = localStorage.getItem('token');
       if (!token) {
-        window.location.href = '/auth.html';
+        window.location.href = '/auth.html?redirect=' + encodeURIComponent(window.location.pathname);
         return false;
       }
 
@@ -471,11 +471,17 @@
           return true;
         } else {
           localStorage.removeItem('token');
-          window.location.href = '/auth.html';
+          localStorage.removeItem('user');
+          localStorage.removeItem('username');
+          window.location.href = '/auth.html?redirect=' + encodeURIComponent(window.location.pathname);
           return false;
         }
       } catch (error) {
         console.error('Auth check error:', error);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('username');
+        window.location.href = '/auth.html?redirect=' + encodeURIComponent(window.location.pathname);
         return false;
       }
     }

@@ -615,7 +615,7 @@ app.post('/api/auth/register', [
     const token = jwt.sign(
       { userId: user._id, username: user.username },
       JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: '30d' } // Extended token expiry
     );
 
     res.status(201).json({
@@ -660,15 +660,17 @@ app.post('/api/auth/login', [
       return res.status(400).json({ error: 'Invalid credentials' });
     }
 
-    // Update last seen
-    user.lastSeen = new Date();
-    await user.save();
+    // Update last seen and online status
+    await User.findByIdAndUpdate(user._id, { 
+      lastSeen: new Date(),
+      isOnline: true 
+    });
 
     // Generate JWT token
     const token = jwt.sign(
       { userId: user._id, username: user.username },
       JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: '30d' } // Extended token expiry
     );
 
     res.json({
@@ -692,6 +694,11 @@ app.post('/api/auth/login', [
 // Get current user
 app.get('/api/auth/me', authenticateToken, async (req, res) => {
   try {
+    // Update last seen when checking auth
+    await User.findByIdAndUpdate(req.user._id, { 
+      lastSeen: new Date() 
+    });
+    
     res.json({
       user: {
         id: req.user._id,
@@ -705,6 +712,7 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('Get current user error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });

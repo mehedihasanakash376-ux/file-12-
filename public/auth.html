@@ -447,7 +447,7 @@
             // Check if there's a redirect URL
             const urlParams = new URLSearchParams(window.location.search);
             const redirect = urlParams.get('redirect') || '/';
-            window.location.href = redirect;
+            window.location.replace(redirect); // Use replace to avoid back button issues
           }, 1000);
         } else {
           showError(data.error || 'Login failed');
@@ -498,7 +498,7 @@
             // Check if there's a redirect URL
             const urlParams = new URLSearchParams(window.location.search);
             const redirect = urlParams.get('redirect') || '/';
-            window.location.href = redirect;
+            window.location.replace(redirect); // Use replace to avoid back button issues
           }, 1000);
         } else {
           showError(data.error || 'Registration failed');
@@ -517,20 +517,23 @@
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
-      }).then(response => {
+      })
+      .then(response => {
         if (response.ok) {
-          // Check if there's a redirect URL
-          const urlParams = new URLSearchParams(window.location.search);
-          const redirect = urlParams.get('redirect') || '/';
-          window.location.href = redirect;
+          return response.json();
         } else {
-          // Token invalid, clear storage
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          localStorage.removeItem('username');
+          throw new Error('Invalid token');
         }
-      }).catch(() => {
-        // Network error, clear storage
+      })
+      .then(data => {
+        // Token is valid, redirect to main page
+        const urlParams = new URLSearchParams(window.location.search);
+        const redirect = urlParams.get('redirect') || '/';
+        window.location.href = redirect;
+      })
+      .catch(error => {
+        console.log('Token validation failed:', error);
+        // Token invalid or network error, clear storage
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         localStorage.removeItem('username');
