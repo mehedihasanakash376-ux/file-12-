@@ -318,9 +318,16 @@ const authenticateToken = async (req, res, next) => {
     if (!user) {
       return res.status(401).json({ error: 'Invalid token' });
     }
+    
+    // Update last seen when token is used
+    await User.findByIdAndUpdate(user._id, { 
+      lastSeen: new Date() 
+    });
+    
     req.user = user;
     next();
   } catch (error) {
+    console.error('Token verification error:', error.message);
     return res.status(403).json({ error: 'Invalid token' });
   }
 };

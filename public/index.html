@@ -1262,49 +1262,7 @@
 
     // Initialize app
     document.addEventListener('DOMContentLoaded', () => {
-      // Check if user is logged in
-      const token = localStorage.getItem('token');
-      if (!token) {
-        // Redirect to auth page immediately
-        window.location.href = '/auth.html';
-        return;
-      }
-      
-      // Show container immediately for logged in users
-      document.querySelector('.container').style.display = 'block';
-      
-      // Initialize user and socket
-      getCurrentUser().then(user => {
-        if (user) {
-          // Update username input with current user
-          const usernameInput = document.getElementById('username');
-          if (usernameInput) {
-            usernameInput.value = user.username;
-            usernameInput.disabled = true;
-            usernameInput.style.opacity = '0.7';
-          }
-          
-          // Initialize socket connection
-          initSocket();
-          
-          // Load posts by default
-          loadPosts(true);
-          document.getElementById('feed-section').style.display = 'block';
-          lastPostTime = new Date();
-        } else {
-          // Invalid token, redirect to auth
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          localStorage.removeItem('username');
-          window.location.href = '/auth.html';
-        }
-      }).catch(error => {
-        console.error('Error getting current user:', error);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        localStorage.removeItem('username');
-        window.location.href = '/auth.html';
-      });
+      initializeApp();
       
       updateOfflineStatus();
       
@@ -1353,6 +1311,74 @@
         });
       });
     });
+    
+    // Initialize app with proper authentication flow
+    async function initializeApp() {
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        console.log('No token found, redirecting to auth');
+        window.location.href = '/auth.html?redirect=' + encodeURIComponent(window.location.pathname);
+        return;
+      }
+      
+      try {
+        // Show loading state
+        document.querySelector('.container').style.opacity = '0.5';
+        
+        // Validate token with server
+        const response = await fetch('/api/auth/me', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          currentUser = data.user;
+          
+          // Show container and initialize app
+          document.querySelector('.container').style.opacity = '1';
+          document.querySelector('.container').style.display = 'block';
+          
+          // Update username input with current user
+          const usernameInput = document.getElementById('username');
+          if (usernameInput) {
+            usernameInput.value = currentUser.username;
+            usernameInput.disabled = true;
+            usernameInput.style.opacity = '0.7';
+          }
+          
+          // Initialize socket connection
+          initSocket();
+          
+          // Load posts by default
+          loadPosts(true);
+          document.getElementById('feed-section').style.display = 'block';
+          lastPostTime = new Date();
+          
+          console.log('User authenticated successfully:', currentUser.username);
+        } else {
+          console.log('Token validation failed, status:', response.status);
+          throw new Error('Token validation failed');
+        }
+      } catch (error) {
+        console.error('Authentication error:', error);
+        
+        // Only redirect if it's actually an auth error, not a network error
+        if (error.message === 'Token validation failed' || !navigator.onLine === false) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          localStorage.removeItem('username');
+          window.location.href = '/auth.html?redirect=' + encodeURIComponent(window.location.pathname);
+        } else {
+          // Network error - show offline message but don't redirect
+          showNotification('Connection error. Working offline...', 'warning');
+          document.querySelector('.container').style.opacity = '1';
+          document.querySelector('.container').style.display = 'block';
+        }
+      }
+    }
     
     // Logout function
     function logout() {

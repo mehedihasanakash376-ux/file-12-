@@ -441,6 +441,7 @@
           localStorage.setItem('token', data.token);
           localStorage.setItem('user', JSON.stringify(data.user));
           localStorage.setItem('username', data.user.username);
+          localStorage.setItem('tokenExpiry', Date.now() + (30 * 24 * 60 * 60 * 1000)); // 30 days
           showSuccess('Login successful! Redirecting...');
           
           setTimeout(() => {
@@ -492,6 +493,7 @@
           localStorage.setItem('token', data.token);
           localStorage.setItem('user', JSON.stringify(data.user));
           localStorage.setItem('username', data.user.username);
+          localStorage.setItem('tokenExpiry', Date.now() + (30 * 24 * 60 * 60 * 1000)); // 30 days
           showSuccess('Account created successfully! Redirecting...');
           
           setTimeout(() => {
@@ -512,6 +514,18 @@
 
     // Check if user is already logged in
     if (localStorage.getItem('token')) {
+      const tokenExpiry = localStorage.getItem('tokenExpiry');
+      
+      // Check if token is expired
+      if (tokenExpiry && Date.now() > parseInt(tokenExpiry)) {
+        console.log('Token expired, clearing storage');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('username');
+        localStorage.removeItem('tokenExpiry');
+        return;
+      }
+      
       // Verify token is still valid
       fetch('/api/auth/me', {
         headers: {
@@ -529,14 +543,16 @@
         // Token is valid, redirect to main page
         const urlParams = new URLSearchParams(window.location.search);
         const redirect = urlParams.get('redirect') || '/';
+        console.log('Token valid, redirecting to:', redirect);
         window.location.href = redirect;
       })
       .catch(error => {
-        console.log('Token validation failed:', error);
+        console.log('Token validation failed or network error:', error);
         // Token invalid or network error, clear storage
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         localStorage.removeItem('username');
+        localStorage.removeItem('tokenExpiry');
       });
     }
   </script>
