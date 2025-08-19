@@ -590,12 +590,6 @@ app.post('/api/auth/register', [
   body('password').isLength({ min: 6 })
 ], async (req, res) => {
   try {
-    // Check if registration is enabled
-    const registrationSetting = await Settings.findOne({ key: 'registrationEnabled' });
-    if (registrationSetting && !registrationSetting.value) {
-      return res.status(403).json({ error: 'Registration is currently disabled' });
-    }
-    
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
@@ -711,20 +705,23 @@ app.post('/api/auth/login', [
 app.get('/api/auth/me', authenticateToken, async (req, res) => {
   try {
     // Update last seen when checking auth
-    await User.findByIdAndUpdate(req.user._id, { 
-      lastSeen: new Date() 
+    const updatedUser = await User.findByIdAndUpdate(req.user._id, { 
+      lastSeen: new Date(),
+      isOnline: true
+    }, { 
+      new: true 
     });
     
     res.json({
       user: {
-        id: req.user._id,
-        username: req.user.username,
-        isPremium: req.user.isPremium,
-        avatar: req.user.avatar,
-        bio: req.user.bio,
-        email: req.user.email,
-        isOnline: req.user.isOnline,
-        lastSeen: req.user.lastSeen
+        id: updatedUser._id,
+        username: updatedUser.username,
+        isPremium: updatedUser.isPremium,
+        avatar: updatedUser.avatar,
+        bio: updatedUser.bio,
+        email: updatedUser.email,
+        isOnline: updatedUser.isOnline,
+        lastSeen: updatedUser.lastSeen
       }
     });
   } catch (error) {

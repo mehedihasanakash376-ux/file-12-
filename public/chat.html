@@ -689,6 +689,9 @@
       } catch (error) {
         console.error('Initialization error:', error);
         localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('username');
+        localStorage.removeItem('tokenExpiry');
         window.location.href = '/auth.html';
       }
     }
