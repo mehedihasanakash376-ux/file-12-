@@ -444,11 +444,23 @@ io.on('connection', (socket) => {
         return;
       }
 
+      // Verify user is participant in the chat
+      const chat = await Chat.findOne({
+        _id: chatId,
+        participants: socket.userId
+      });
+
+      if (!chat) {
+        socket.emit('error', { message: 'Chat not found or access denied' });
+        return;
+      }
+
       const message = new Message({
         chatId,
         sender: socket.userId,
         content,
-        messageType
+        messageType,
+        createdAt: new Date() // Ensure timestamp is set
       });
 
       await message.save();
@@ -584,12 +596,41 @@ app.get('/api/auth/check-username/:username', async (req, res) => {
   }
 });
 
+let registrationEnabled = true;
+
+// Get registration status
+app.get('/api/auth/registration-status', (req, res) => {
+  res.json({ enabled: registrationEnabled });
+});
+
+// Toggle registration (admin only)
+app.post('/api/admin/toggle-registration', async (req, res) => {
+  try {
+    const { password } = req.body;
+    
+    if (password !== ADMIN_PASSWORD) {
+      return res.status(401).json({ error: 'Invalid admin password' });
+    }
+    
+    registrationEnabled = !registrationEnabled;
+    res.json({ enabled: registrationEnabled });
+  } catch (error) {
+    console.error('Toggle registration error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Register user
 app.post('/api/auth/register', [
   body('username').isLength({ min: 3, max: 20 }).matches(/^[a-zA-Z0-9_]+$/),
   body('password').isLength({ min: 6 })
 ], async (req, res) => {
   try {
+    // Check if registration is enabled
+    if (!registrationEnabled) {
+      return res.status(403).json({ error: 'Registration is currently disabled by the administrator' });
+    }
+    
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
@@ -1183,7 +1224,8 @@ app.post('/api/chats/:chatId/messages', authenticateToken, upload.single('file')
       sender: req.user._id,
       content: content || (media ? `Sent ${media.originalName}` : ''),
       messageType,
-      media
+      media,
+      createdAt: new Date() // Ensure timestamp is properly set
     });
 
     await message.save();

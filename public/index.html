@@ -1322,6 +1322,18 @@
         return;
       }
       
+      // Check token expiry first
+      const tokenExpiry = localStorage.getItem('tokenExpiry');
+      if (tokenExpiry && Date.now() > parseInt(tokenExpiry)) {
+        console.log('Token expired, clearing storage and redirecting');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('username');
+        localStorage.removeItem('tokenExpiry');
+        window.location.href = '/auth.html?redirect=' + encodeURIComponent(window.location.pathname);
+        return;
+      }
+      
       try {
         // Show loading state
         document.querySelector('.container').style.opacity = '0.5';
@@ -1358,7 +1370,7 @@
           
           console.log('User authenticated successfully:', currentUser.username);
         } else {
-          console.log('Token validation failed, status:', response.status);
+          console.log('Token validation failed, status:', response.status, 'Response:', await response.text());
           throw new Error('Token validation failed');
         }
       } catch (error) {

@@ -124,20 +124,7 @@
   <div id="posts"></div>
 
   <script>
-    // Check authentication
-    function checkAuth() {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        alert('Please login first');
-        window.location.href = '/auth.html?redirect=' + encodeURIComponent('/admin.html');
-        return false;
-      }
-      return true;
-    }
-    
     async function loadPosts() {
-      if (!checkAuth()) return;
-      
       const password = document.getElementById('password').value;
       
       if (!password) {
@@ -149,8 +136,7 @@
         const res = await fetch('/api/admin/posts', {
           method: 'POST',
           headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({ password })
         });
@@ -194,8 +180,6 @@
     }
 
     async function deletePost(id) {
-      if (!checkAuth()) return;
-      
       const password = document.getElementById('password').value;
       if (!confirm('Delete this post?')) return;
 
@@ -203,8 +187,7 @@
         const res = await fetch(`/api/admin/posts/${id}`, {
           method: 'DELETE',
           headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({ password })
         });
@@ -222,12 +205,6 @@
       }
     }
     
-    // Initialize page
-    document.addEventListener('DOMContentLoaded', () => {
-      checkAuth();
-      loadRegistrationStatus();
-    });
-    
     async function loadRegistrationStatus() {
       try {
         const response = await fetch('/api/auth/registration-status');
@@ -236,11 +213,26 @@
         const statusDiv = document.getElementById('registration-status');
         const statusText = document.getElementById('status-text');
         
-        statusDiv.style.display = 'block';
-        statusText.textContent = data.enabled ? 'ENABLED' : 'DISABLED';
-        statusDiv.style.backgroundColor = data.enabled ? '#d4edda' : '#f8d7da';
-        statusDiv.style.color = data.enabled ? '#155724' : '#721c24';
-        statusDiv.style.border = `1px solid ${data.enabled ? '#c3e6cb' : '#f5c6cb'}`;
+        if (!statusDiv) {
+          // Create registration status elements if they don't exist
+          const container = document.querySelector('.container');
+          const statusHTML = `
+            <div id="registration-status" style="display: block; padding: 1rem; margin: 1rem 0; border-radius: 6px; text-align: center;">
+              <h3>Registration Status: <span id="status-text"></span></h3>
+              <button onclick="toggleRegistration()" style="margin-top: 0.5rem;">Toggle Registration</button>
+            </div>
+          `;
+          container.insertAdjacentHTML('afterbegin', statusHTML);
+        }
+        
+        const statusDiv2 = document.getElementById('registration-status');
+        const statusText2 = document.getElementById('status-text');
+        
+        statusDiv2.style.display = 'block';
+        statusText2.textContent = data.enabled ? 'ENABLED' : 'DISABLED';
+        statusDiv2.style.backgroundColor = data.enabled ? '#d4edda' : '#f8d7da';
+        statusDiv2.style.color = data.enabled ? '#155724' : '#721c24';
+        statusDiv2.style.border = `1px solid ${data.enabled ? '#c3e6cb' : '#f5c6cb'}`;
       } catch (error) {
         console.error('Error loading registration status:', error);
       }
@@ -258,8 +250,7 @@
         const response = await fetch('/api/admin/toggle-registration', {
           method: 'POST',
           headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({ password })
         });
@@ -277,6 +268,11 @@
         alert('Error toggling registration: ' + error.message);
       }
     }
+    
+    // Initialize page
+    document.addEventListener('DOMContentLoaded', () => {
+      loadRegistrationStatus();
+    });
   </script>
 
 </div>
