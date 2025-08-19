@@ -590,6 +590,12 @@ app.post('/api/auth/register', [
   body('password').isLength({ min: 6 })
 ], async (req, res) => {
   try {
+    // Check if registration is enabled
+    const registrationSetting = await Settings.findOne({ key: 'registrationEnabled' });
+    if (registrationSetting && !registrationSetting.value) {
+      return res.status(403).json({ error: 'Registration is currently disabled' });
+    }
+    
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
