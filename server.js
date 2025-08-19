@@ -30,6 +30,9 @@ const MONGODB_URI = process.env.MONGODB_URI;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 
+// Generate a stronger JWT secret if using default
+const STRONG_JWT_SECRET = process.env.JWT_SECRET || require('crypto').randomBytes(64).toString('hex');
+
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: false,
@@ -313,7 +316,10 @@ const authenticateToken = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, STRONG_JWT_SECRET, {
+      issuer: 'nafij-social-share',
+      audience: 'nafij-users'
+    });
     const user = await User.findById(decoded.userId);
     if (!user) {
       return res.status(401).json({ error: 'Invalid token' });
@@ -339,7 +345,10 @@ const optionalAuth = async (req, res, next) => {
 
   if (token) {
     try {
-      const decoded = jwt.verify(token, JWT_SECRET);
+      const decoded = jwt.verify(token, STRONG_JWT_SECRET, {
+        issuer: 'nafij-social-share',
+        audience: 'nafij-users'
+      });
       const user = await User.findById(decoded.userId);
       if (user) {
         req.user = user;
@@ -360,7 +369,10 @@ io.on('connection', (socket) => {
   // User authentication for socket
   socket.on('authenticate', async (token) => {
     try {
-      const decoded = jwt.verify(token, JWT_SECRET);
+      const decoded = jwt.verify(token, STRONG_JWT_SECRET, {
+        issuer: 'nafij-social-share',
+        audience: 'nafij-users'
+      });
       const user = await User.findById(decoded.userId);
       if (user) {
         socket.userId = user._id.toString();
@@ -665,8 +677,12 @@ app.post('/api/auth/register', [
     // Generate JWT token
     const token = jwt.sign(
       { userId: user._id, username: user.username },
-      JWT_SECRET,
-      { expiresIn: '30d' } // Extended token expiry
+      STRONG_JWT_SECRET,
+      { 
+        expiresIn: '30d',
+        issuer: 'nafij-social-share',
+        audience: 'nafij-users'
+      }
     );
 
     res.status(201).json({
@@ -720,8 +736,12 @@ app.post('/api/auth/login', [
     // Generate JWT token
     const token = jwt.sign(
       { userId: user._id, username: user.username },
-      JWT_SECRET,
-      { expiresIn: '30d' } // Extended token expiry
+      STRONG_JWT_SECRET,
+      { 
+        expiresIn: '30d',
+        issuer: 'nafij-social-share',
+        audience: 'nafij-users'
+      }
     );
 
     res.json({
@@ -870,7 +890,10 @@ app.post('/api/posts', upload.array('files', 10), async (req, res) => {
 
     let user;
     try {
-      const decoded = jwt.verify(token, JWT_SECRET);
+     const decoded = jwt.verify(token, STRONG_JWT_SECRET, {
+       issuer: 'nafij-social-share',
+       audience: 'nafij-users'
+     });
       user = await User.findById(decoded.userId);
       if (!user) {
         return res.status(401).json({ error: 'Invalid token' });
