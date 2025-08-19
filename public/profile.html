@@ -458,6 +458,16 @@
         return false;
       }
 
+      // Check token expiry
+      const tokenExpiry = localStorage.getItem('tokenExpiry');
+      if (tokenExpiry && Date.now() > parseInt(tokenExpiry)) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('username');
+        localStorage.removeItem('tokenExpiry');
+        window.location.href = '/auth.html?redirect=' + encodeURIComponent(window.location.pathname);
+        return false;
+      }
       try {
         const response = await fetch('/api/auth/me', {
           headers: {
@@ -470,6 +480,7 @@
           currentUser = data.user;
           return true;
         } else {
+          console.log('Token validation failed, status:', response.status);
           localStorage.removeItem('token');
           localStorage.removeItem('user');
           localStorage.removeItem('username');
@@ -482,8 +493,6 @@
         localStorage.removeItem('user');
         localStorage.removeItem('username');
         localStorage.removeItem('tokenExpiry');
-        localStorage.removeItem('user');
-        localStorage.removeItem('username');
         window.location.href = '/auth.html?redirect=' + encodeURIComponent(window.location.pathname);
         return false;
       }

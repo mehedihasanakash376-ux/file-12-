@@ -75,6 +75,16 @@
     const token = localStorage.getItem('token');
     if (!token) {
       window.location.href = '/auth.html?redirect=' + encodeURIComponent(window.location.pathname);
+    } else {
+      // Check token expiry
+      const tokenExpiry = localStorage.getItem('tokenExpiry');
+      if (tokenExpiry && Date.now() > parseInt(tokenExpiry)) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('username');
+        localStorage.removeItem('tokenExpiry');
+        window.location.href = '/auth.html?redirect=' + encodeURIComponent(window.location.pathname);
+      }
     }
   </script>
 

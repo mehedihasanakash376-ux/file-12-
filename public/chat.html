@@ -1354,9 +1354,9 @@
       }, 2000);
       
       // Start call timer
-      const timer = setInterval(() => {
+      currentCall.timer = setInterval(() => {
         if (!document.getElementById('call-controls')) {
-          clearInterval(timer);
+          clearInterval(currentCall.timer);
           return;
         }
         
@@ -1396,6 +1396,11 @@
     
     function endCall() {
       if (currentCall) {
+        // Clear timer
+        if (currentCall.timer) {
+          clearInterval(currentCall.timer);
+        }
+        
         // Close peer connection
         if (currentCall.peerConnection) {
           currentCall.peerConnection.close();
