@@ -689,9 +689,6 @@
       } catch (error) {
         console.error('Initialization error:', error);
         localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        localStorage.removeItem('username');
-        localStorage.removeItem('tokenExpiry');
         window.location.href = '/auth.html';
       }
     }
@@ -1589,9 +1586,12 @@
         }, 1000);
 
       } catch (error) {
-        window.location.href = '/auth.html?redirect=' + encodeURIComponent(window.location.pathname);
+        console.error('Auth check error:', error);
         localStorage.removeItem('token');
-        window.location.href = '/auth.html';
+        localStorage.removeItem('user');
+        localStorage.removeItem('username');
+        localStorage.removeItem('tokenExpiry');
+        window.location.href = '/auth.html?redirect=' + encodeURIComponent(window.location.pathname);
       }
       
       // Show mobile toggle on mobile
@@ -1604,12 +1604,8 @@
         if (window.innerWidth > 768) {
           document.getElementById('chat-sidebar').classList.remove('open');
           document.getElementById('mobile-toggle-main').style.display = 'none';
-          window.location.href = '/auth.html?redirect=' + encodeURIComponent(window.location.pathname);
+        } else {
           document.getElementById('mobile-toggle-main').style.display = 'block';
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        localStorage.removeItem('username');
-        window.location.href = '/auth.html?redirect=' + encodeURIComponent(window.location.pathname);
         }
       });
     }

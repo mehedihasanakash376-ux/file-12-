@@ -481,6 +481,9 @@
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         localStorage.removeItem('username');
+        localStorage.removeItem('tokenExpiry');
+        localStorage.removeItem('user');
+        localStorage.removeItem('username');
         window.location.href = '/auth.html?redirect=' + encodeURIComponent(window.location.pathname);
         return false;
       }
