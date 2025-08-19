@@ -1339,7 +1339,6 @@
           
           // Show container and initialize app
           document.querySelector('.container').style.opacity = '1';
-          document.querySelector('.container').style.display = 'block';
           
           // Update username input with current user
           const usernameInput = document.getElementById('username');
@@ -1365,18 +1364,12 @@
       } catch (error) {
         console.error('Authentication error:', error);
         
-        // Only redirect if it's actually an auth error, not a network error
-        if (error.message === 'Token validation failed' || !navigator.onLine === false) {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          localStorage.removeItem('username');
-          window.location.href = '/auth.html?redirect=' + encodeURIComponent(window.location.pathname);
-        } else {
-          // Network error - show offline message but don't redirect
-          showNotification('Connection error. Working offline...', 'warning');
-          document.querySelector('.container').style.opacity = '1';
-          document.querySelector('.container').style.display = 'block';
-        }
+        // Clear invalid token and redirect
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('username');
+        localStorage.removeItem('tokenExpiry');
+        window.location.href = '/auth.html?redirect=' + encodeURIComponent(window.location.pathname);
       }
     }
     

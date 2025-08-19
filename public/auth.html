@@ -475,6 +475,15 @@
       registerBtn.innerHTML = '<span class="loading-spinner"></span> Creating account...';
       
       try {
+        // Check if registration is enabled
+        const statusResponse = await fetch('/api/auth/registration-status');
+        const statusData = await statusResponse.json();
+        
+        if (!statusData.enabled) {
+          showError('Registration is currently disabled by the administrator');
+          return;
+        }
+        
         const response = await fetch('/api/auth/register', {
           method: 'POST',
           headers: {
@@ -523,37 +532,36 @@
         localStorage.removeItem('user');
         localStorage.removeItem('username');
         localStorage.removeItem('tokenExpiry');
-        return;
+      } else {
+        // Verify token is still valid
+        fetch('/api/auth/me', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        })
+        .then(response => {
+          if (response.ok) {
+            return response.json();
+          } else {
+            throw new Error('Invalid token');
+          }
+        })
+        .then(data => {
+          // Token is valid, redirect to main page
+          const urlParams = new URLSearchParams(window.location.search);
+          const redirect = urlParams.get('redirect') || '/';
+          console.log('Token valid, redirecting to:', redirect);
+          window.location.href = redirect;
+        })
+        .catch(error => {
+          console.log('Token validation failed or network error:', error);
+          // Token invalid or network error, clear storage
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          localStorage.removeItem('username');
+          localStorage.removeItem('tokenExpiry');
+        });
       }
-      
-      // Verify token is still valid
-      fetch('/api/auth/me', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      })
-      .then(response => {
-        if (response.ok) {
-          return response.json();
-        } else {
-          throw new Error('Invalid token');
-        }
-      })
-      .then(data => {
-        // Token is valid, redirect to main page
-        const urlParams = new URLSearchParams(window.location.search);
-        const redirect = urlParams.get('redirect') || '/';
-        console.log('Token valid, redirecting to:', redirect);
-        window.location.href = redirect;
-      })
-      .catch(error => {
-        console.log('Token validation failed or network error:', error);
-        // Token invalid or network error, clear storage
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        localStorage.removeItem('username');
-        localStorage.removeItem('tokenExpiry');
-      });
     }
   </script>
 </body>

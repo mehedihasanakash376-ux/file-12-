@@ -225,7 +225,58 @@
     // Initialize page
     document.addEventListener('DOMContentLoaded', () => {
       checkAuth();
+      loadRegistrationStatus();
     });
+    
+    async function loadRegistrationStatus() {
+      try {
+        const response = await fetch('/api/auth/registration-status');
+        const data = await response.json();
+        
+        const statusDiv = document.getElementById('registration-status');
+        const statusText = document.getElementById('status-text');
+        
+        statusDiv.style.display = 'block';
+        statusText.textContent = data.enabled ? 'ENABLED' : 'DISABLED';
+        statusDiv.style.backgroundColor = data.enabled ? '#d4edda' : '#f8d7da';
+        statusDiv.style.color = data.enabled ? '#155724' : '#721c24';
+        statusDiv.style.border = `1px solid ${data.enabled ? '#c3e6cb' : '#f5c6cb'}`;
+      } catch (error) {
+        console.error('Error loading registration status:', error);
+      }
+    }
+    
+    async function toggleRegistration() {
+      const password = document.getElementById('password').value;
+      
+      if (!password) {
+        alert('Please enter admin password');
+        return;
+      }
+      
+      try {
+        const response = await fetch('/api/admin/toggle-registration', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({ password })
+        });
+
+        if (!response.ok) {
+          const error = await response.text();
+          return alert('Error: ' + error);
+        }
+
+        const data = await response.json();
+        alert(`Registration ${data.enabled ? 'enabled' : 'disabled'} successfully`);
+        loadRegistrationStatus();
+      } catch (error) {
+        console.error('Error toggling registration:', error);
+        alert('Error toggling registration: ' + error.message);
+      }
+    }
   </script>
 
 </div>
