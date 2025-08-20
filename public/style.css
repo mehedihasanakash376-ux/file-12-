@@ -863,9 +863,11 @@ body.dark .post-actions {
   cursor: pointer;
   display: flex;
   align-items: center;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 212, 255, 0.05);
-  position: relative;
-  overflow: hidden;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius);
+  transition: all var(--transition-fast);
+  font-size: 0.9rem;
 }
 
 body.dark .feed-header {
@@ -1297,6 +1299,10 @@ body.dark .reply-btn {
   animation: pulse 0.3s ease-out;
 }
 
+.comment-like-btn.pulse {
+  animation: pulse 0.3s ease-out;
+}
+
 .reply-form {
   margin-top: var(--spacing-md);
   padding: var(--spacing-md);
@@ -1421,6 +1427,30 @@ body.dark .reply-input {
 
 .comment-btn.active .reaction-icon {
   animation: bounce 0.5s ease-out;
+}
+
+.share-btn {
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius);
+  transition: all var(--transition-fast);
+  font-size: 0.9rem;
+}
+
+body.dark .share-btn {
+  color: #999;
+}
+
+.share-btn:hover {
+  background: rgba(0, 212, 255, 0.1);
+  color: var(--primary);
+  transform: scale(1.05);
 }
 
 @keyframes bounce {

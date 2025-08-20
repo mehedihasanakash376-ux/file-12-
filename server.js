@@ -379,7 +379,7 @@ app.post('/api/posts/:postId/comments/:commentId/like', async (req, res) => {
       return res.status(404).json({ error: 'Post not found' });
     }
 
-    const comment = post.comments.id(req.params.commentId);
+    const comment = post.comments.find(c => c.id === req.params.commentId);
     if (!comment) {
       return res.status(404).json({ error: 'Comment not found' });
     }

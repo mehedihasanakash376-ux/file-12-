@@ -193,9 +193,73 @@
               <span class="reaction-icon">❤️</span>
               <span class="like-count">${post.likes || 0}</span>
             </button>
+            <button class="comment-btn" onclick="toggleComments('${post._id}')">
+              <span class="reaction-icon">💬</span>
+              <span class="comment-count">${post.comments?.length || 0}</span>
+            </button>
+            <button class="share-btn" onclick="sharePost('${post._id}')">
+              <span class="reaction-icon">🔗</span>
+              <span>Share</span>
+            </button>
+          </div>
+
+          <div class="comments-section" id="comments-${post._id}" style="display: none;">
+            <div class="comment-form">
+              <input type="text" class="comment-input" placeholder="Write a comment..." maxlength="1000" />
+              <button class="btn btn-primary comment-submit" onclick="addComment('${post._id}', this)">Post</button>
+            </div>
+            <div class="comments-list" id="comments-list-${post._id}">
+              ${buildCommentsHTML(post.comments || [], post._id)}
+            </div>
           </div>
         </article>
       `;
+    }
+
+    function buildCommentsHTML(comments, postId, parentId = null, level = 0) {
+      if (!comments || comments.length === 0) return '';
+      
+      const filteredComments = comments.filter(comment => comment.parentId === parentId);
+      
+      return filteredComments.map(comment => {
+        const timeAgo = getTimeAgo(new Date(comment.createdAt));
+        const replies = buildCommentsHTML(comments, postId, comment.id, level + 1);
+        const hasReplies = replies.length > 0;
+        
+        return `
+          <div class="comment ${level > 0 ? 'comment-reply' : ''}" data-comment-id="${comment.id}" data-level="${level}">
+            ${level > 0 ? '<div class="reply-line"></div>' : ''}
+            <div class="comment-content-wrapper">
+              <div class="comment-header">
+                <div class="comment-author">
+                  <div class="comment-avatar">${comment.user.charAt(0).toUpperCase()}</div>
+                  <strong>${comment.user}</strong>
+                  <span class="comment-time">${timeAgo}</span>
+                </div>
+              </div>
+              <div class="comment-content">${comment.text}</div>
+              <div class="comment-actions">
+                <button class="comment-like-btn" onclick="likeComment('${postId}', '${comment.id}')">
+                  <span class="reaction-icon">❤️</span>
+                  <span class="like-count">${comment.likes || 0}</span>
+                </button>
+                <button class="reply-btn" onclick="showReplyForm('${postId}', '${comment.id}')">
+                  <span class="reaction-icon">↩️</span>
+                  <span>Reply</span>
+                </button>
+              </div>
+              <div class="reply-form" id="reply-form-${comment.id}" style="display: none;">
+                <input type="text" class="reply-input" placeholder="Write a reply..." maxlength="1000" />
+                <div class="reply-form-actions">
+                  <button class="btn btn-primary reply-submit" onclick="addReply('${postId}', '${comment.id}', this)">Reply</button>
+                  <button class="btn btn-outline reply-cancel" onclick="hideReplyForm('${comment.id}')">Cancel</button>
+                </div>
+              </div>
+            </div>
+            ${hasReplies ? `<div class="replies">${replies}</div>` : ''}
+          </div>
+        `;
+      }).join('');
     }
 
     // Post interactions
@@ -218,6 +282,227 @@
         }
       } catch (error) {
         console.error('Error liking post:', error);
+      }
+    }
+
+    async function likeComment(postId, commentId) {
+      try {
+        const response = await fetch(`/api/posts/${postId}/comments/${commentId}/like`, {
+          method: 'POST'
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          const likeBtn = document.querySelector(`[data-comment-id="${commentId}"] .comment-like-btn`);
+          const likeCount = likeBtn.querySelector('.like-count');
+          
+          likeCount.textContent = result.likes;
+          
+          // Animate heart
+          likeBtn.classList.add('pulse');
+          setTimeout(() => likeBtn.classList.remove('pulse'), 300);
+        }
+      } catch (error) {
+        console.error('Error liking comment:', error);
+        showNotification('Failed to like comment', 'error');
+      }
+    }
+
+    function toggleComments(postId) {
+      const commentsSection = document.getElementById(`comments-${postId}`);
+      const commentBtn = document.querySelector(`[data-post-id="${postId}"] .comment-btn`);
+      
+      if (commentsSection.style.display === 'none') {
+        commentsSection.style.display = 'block';
+        commentsSection.classList.add('slide-in');
+        commentBtn.classList.add('active');
+        
+        // Focus on comment input
+        const commentInput = commentsSection.querySelector('.comment-input');
+        setTimeout(() => commentInput.focus(), 300);
+      } else {
+        commentsSection.style.display = 'none';
+        commentsSection.classList.remove('slide-in');
+        commentBtn.classList.remove('active');
+      }
+    }
+
+    async function addComment(postId, button) {
+      const commentInput = button.parentElement.querySelector('.comment-input');
+      const text = commentInput.value.trim();
+      
+      if (!text) {
+        showNotification('Please enter a comment', 'warning');
+        return;
+      }
+      
+      const savedUsername = localStorage.getItem('username');
+      if (!savedUsername) {
+        showNotification('Please set your username first by creating a post', 'warning');
+        return;
+      }
+
+      try {
+        button.disabled = true;
+        button.textContent = 'Posting...';
+        
+        const response = await fetch(`/api/posts/${postId}/comments`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            user: savedUsername,
+            text: text
+          })
+        });
+
+        if (response.ok) {
+          const comment = await response.json();
+          
+          // Clear input
+          commentInput.value = '';
+          
+          // Update comments list
+          await refreshComments(postId);
+          
+          // Update comment count
+          const commentBtn = document.querySelector(`[data-post-id="${postId}"] .comment-btn .comment-count`);
+          const currentCount = parseInt(commentBtn.textContent) || 0;
+          commentBtn.textContent = currentCount + 1;
+          
+          showNotification('Comment added successfully! 💬', 'success');
+        } else {
+          const error = await response.json();
+          showNotification(error.error || 'Failed to add comment', 'error');
+        }
+      } catch (error) {
+        console.error('Error adding comment:', error);
+        showNotification('Failed to add comment', 'error');
+      } finally {
+        button.disabled = false;
+        button.textContent = 'Post';
+      }
+    }
+
+    async function addReply(postId, parentId, button) {
+      const replyInput = button.parentElement.parentElement.querySelector('.reply-input');
+      const text = replyInput.value.trim();
+      
+      if (!text) {
+        showNotification('Please enter a reply', 'warning');
+        return;
+      }
+      
+      const savedUsername = localStorage.getItem('username');
+      if (!savedUsername) {
+        showNotification('Please set your username first by creating a post', 'warning');
+        return;
+      }
+
+      try {
+        button.disabled = true;
+        button.textContent = 'Replying...';
+        
+        const response = await fetch(`/api/posts/${postId}/comments`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            user: savedUsername,
+            text: text,
+            parentId: parentId
+          })
+        });
+
+        if (response.ok) {
+          const reply = await response.json();
+          
+          // Clear input and hide form
+          replyInput.value = '';
+          hideReplyForm(parentId);
+          
+          // Update comments list
+          await refreshComments(postId);
+          
+          // Update comment count
+          const commentBtn = document.querySelector(`[data-post-id="${postId}"] .comment-btn .comment-count`);
+          const currentCount = parseInt(commentBtn.textContent) || 0;
+          commentBtn.textContent = currentCount + 1;
+          
+          showNotification('Reply added successfully! 💬', 'success');
+        } else {
+          const error = await response.json();
+          showNotification(error.error || 'Failed to add reply', 'error');
+        }
+      } catch (error) {
+        console.error('Error adding reply:', error);
+        showNotification('Failed to add reply', 'error');
+      } finally {
+        button.disabled = false;
+        button.textContent = 'Reply';
+      }
+    }
+
+    function showReplyForm(postId, commentId) {
+      // Hide all other reply forms
+      document.querySelectorAll('.reply-form').forEach(form => {
+        if (form.id !== `reply-form-${commentId}`) {
+          form.style.display = 'none';
+        }
+      });
+      
+      const replyForm = document.getElementById(`reply-form-${commentId}`);
+      replyForm.style.display = 'block';
+      replyForm.classList.add('slide-in');
+      
+      // Focus on reply input
+      const replyInput = replyForm.querySelector('.reply-input');
+      setTimeout(() => replyInput.focus(), 100);
+    }
+
+    function hideReplyForm(commentId) {
+      const replyForm = document.getElementById(`reply-form-${commentId}`);
+      replyForm.style.display = 'none';
+      replyForm.classList.remove('slide-in');
+    }
+
+    async function refreshComments(postId) {
+      try {
+        const response = await fetch(`/api/posts?limit=1000`);
+        const posts = await response.json();
+        const post = posts.find(p => p._id === postId);
+        
+        if (post) {
+          const commentsList = document.getElementById(`comments-list-${postId}`);
+          commentsList.innerHTML = buildCommentsHTML(post.comments || [], postId);
+          
+          // Update local data
+          const localPost = allPosts.find(p => p._id === postId);
+          if (localPost) {
+            localPost.comments = post.comments;
+          }
+        }
+      } catch (error) {
+        console.error('Error refreshing comments:', error);
+      }
+    }
+
+    function sharePost(postId) {
+      const url = `${window.location.origin}/#post-${postId}`;
+      
+      if (navigator.share) {
+        navigator.share({
+          title: 'Check out this post!',
+          url: url
+        });
+      } else {
+        navigator.clipboard.writeText(url).then(() => {
+          showNotification('Post link copied to clipboard! 🔗', 'success');
+        }).catch(() => {
+          showNotification('Failed to copy link', 'error');
+        });
       }
     }
 
