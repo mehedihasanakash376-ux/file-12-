@@ -121,6 +121,34 @@ const postSchema = new mongoose.Schema({
 
 const Post = mongoose.model('Post', postSchema);
 
+// User Schema
+const userSchema = new mongoose.Schema({
+  username: {
+    type: String,
+    required: true,
+    unique: true,
+    maxlength: 20,
+    trim: true
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  lastActive: {
+    type: Date,
+    default: Date.now
+  },
+  postsCount: {
+    type: Number,
+    default: 0
+  },
+  totalLikes: {
+    type: Number,
+    default: 0
+  }
+});
+
+const User = mongoose.model('User', userSchema);
 // Multer configuration for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -157,6 +185,83 @@ const upload = multer({
 
 // Routes
 
+// Create or update user
+app.post('/api/users', async (req, res) => {
+  try {
+    const { username } = req.body;
+    
+    if (!username || username.trim().length === 0) {
+      return res.status(400).json({ error: 'Username is required' });
+    }
+    
+    if (username.length > 20) {
+      return res.status(400).json({ error: 'Username must be 20 characters or less' });
+    }
+    
+    const trimmedUsername = username.trim();
+    
+    // Check if user already exists
+    let user = await User.findOne({ username: trimmedUsername });
+    
+    if (user) {
+      // Update last active
+      user.lastActive = new Date();
+      await user.save();
+      return res.json({ message: 'User updated', user });
+    }
+    
+    // Create new user
+    user = new User({
+      username: trimmedUsername
+    });
+    
+    await user.save();
+    res.status(201).json({ message: 'User created successfully', user });
+    
+  } catch (error) {
+    if (error.code === 11000) {
+      // Duplicate username
+      return res.status(400).json({ error: 'Username already exists' });
+    }
+    console.error('Create user error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get user info
+app.get('/api/users/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+    
+    const user = await User.findOne({ username: username.trim() });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    // Get user's posts count and total likes
+    const posts = await Post.find({ user: username.trim() });
+    const postsCount = posts.length;
+    const totalLikes = posts.reduce((sum, post) => sum + (post.likes || 0), 0);
+    
+    // Update user stats
+    user.postsCount = postsCount;
+    user.totalLikes = totalLikes;
+    user.lastActive = new Date();
+    await user.save();
+    
+    res.json({
+      username: user.username,
+      createdAt: user.createdAt,
+      lastActive: user.lastActive,
+      postsCount,
+      totalLikes
+    });
+    
+  } catch (error) {
+    console.error('Get user error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
 // Get platform statistics
 app.get('/api/stats', async (req, res) => {
   try {
@@ -286,6 +391,20 @@ app.post('/api/posts', upload.array('files', 10), async (req, res) => {
 
     await post.save();
 
+    // Update user stats
+    try {
+      await User.findOneAndUpdate(
+        { username: user.trim() },
+        { 
+          $inc: { postsCount: 1 },
+          $set: { lastActive: new Date() }
+        },
+        { upsert: true }
+      );
+    } catch (userError) {
+      console.log('User stats update failed:', userError);
+      // Don't fail the post creation if user update fails
+    }
     res.status(201).json(post);
   } catch (error) {
     console.error('Create post error:', error);

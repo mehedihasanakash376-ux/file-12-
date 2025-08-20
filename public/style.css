@@ -1986,7 +1986,7 @@ body.dark .empty-state {
 /* Notifications */
 .notification {
   position: fixed;
-  top: 100px;
+  top: 80px;
   right: var(--spacing-xl);
   background: var(--card-bg-light);
   color: var(--text-light);
@@ -2001,6 +2001,9 @@ body.dark .empty-state {
   backdrop-filter: blur(10px);
   position: relative;
   overflow: hidden;
+  font-weight: 500;
+  font-size: 0.9rem;
+  min-width: 250px;
 }
 
 .notification::before {
@@ -2022,7 +2025,7 @@ body.dark .notification {
 
 .notification.show {
   transform: translateX(0);
-  animation: slideInRight 0.5s ease-out;
+  animation: slideInRight 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
 .notification.show::before {
@@ -2033,11 +2036,14 @@ body.dark .notification {
 @keyframes slideInRight {
   from {
     opacity: 0;
-    transform: translateX(100%) scale(0.8);
+    transform: translateX(120%) scale(0.9) rotate(5deg);
+  }
+  50% {
+    transform: translateX(-10px) scale(1.02) rotate(-1deg);
   }
   to {
     opacity: 1;
-    transform: translateX(0) scale(1);
+    transform: translateX(0) scale(1) rotate(0deg);
   }
 }
 
@@ -2049,30 +2055,180 @@ body.dark .notification {
 .notification.success {
   border-left: 4px solid var(--accent);
   background: linear-gradient(135deg, var(--card-bg-light), rgba(57, 255, 20, 0.05));
+  box-shadow: 0 8px 32px rgba(57, 255, 20, 0.2), 0 0 0 1px rgba(57, 255, 20, 0.1);
 }
 
 .notification.error {
   border-left: 4px solid var(--error);
   background: linear-gradient(135deg, var(--card-bg-light), rgba(255, 0, 128, 0.05));
+  box-shadow: 0 8px 32px rgba(255, 0, 128, 0.2), 0 0 0 1px rgba(255, 0, 128, 0.1);
 }
 
 .notification.warning {
   border-left: 4px solid var(--warning);
   background: linear-gradient(135deg, var(--card-bg-light), rgba(255, 107, 53, 0.05));
+  box-shadow: 0 8px 32px rgba(255, 107, 53, 0.2), 0 0 0 1px rgba(255, 107, 53, 0.1);
 }
 
 body.dark .notification.success {
   background: linear-gradient(135deg, var(--card-bg-dark), rgba(57, 255, 20, 0.08));
+  box-shadow: 0 8px 32px rgba(57, 255, 20, 0.3), 0 0 0 1px rgba(57, 255, 20, 0.2);
 }
 
 body.dark .notification.error {
   background: linear-gradient(135deg, var(--card-bg-dark), rgba(255, 0, 128, 0.08));
+  box-shadow: 0 8px 32px rgba(255, 0, 128, 0.3), 0 0 0 1px rgba(255, 0, 128, 0.2);
 }
 
 body.dark .notification.warning {
   background: linear-gradient(135deg, var(--card-bg-dark), rgba(255, 107, 53, 0.08));
+  box-shadow: 0 8px 32px rgba(255, 107, 53, 0.3), 0 0 0 1px rgba(255, 107, 53, 0.2);
 }
 
+/* Notification Stack */
+.notification:nth-child(2) {
+  top: 140px;
+  animation-delay: 0.1s;
+}
+
+.notification:nth-child(3) {
+  top: 200px;
+  animation-delay: 0.2s;
+}
+
+.notification:nth-child(4) {
+  top: 260px;
+  animation-delay: 0.3s;
+}
+
+/* Username Setting Card */
+.username-card {
+  background: linear-gradient(135deg, var(--card-bg-light), rgba(0, 212, 255, 0.03));
+  border: 2px solid var(--border-light);
+  border-radius: var(--radius-large);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+  box-shadow: 0 8px 32px rgba(0, 212, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+  transition: all var(--transition-smooth);
+}
+
+body.dark .username-card {
+  background: linear-gradient(135deg, var(--card-bg-dark), rgba(0, 212, 255, 0.08));
+  border-color: var(--border-dark);
+  box-shadow: 0 8px 32px rgba(0, 212, 255, 0.2);
+}
+
+.username-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--gradient-primary);
+  border-radius: var(--radius-large) var(--radius-large) 0 0;
+}
+
+.username-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 40px rgba(0, 212, 255, 0.2);
+  border-color: var(--primary);
+}
+
+body.dark .username-card:hover {
+  box-shadow: 0 12px 40px rgba(0, 212, 255, 0.3);
+}
+
+.username-form {
+  display: flex;
+  gap: var(--spacing-md);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.username-input {
+  flex: 1;
+  min-width: 200px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 2px solid var(--border-light);
+  border-radius: 25px;
+  background: var(--bg-light);
+  color: var(--text-light);
+  font-size: 1rem;
+  transition: all var(--transition-fast);
+  font-weight: 500;
+}
+
+body.dark .username-input {
+  border-color: var(--border-dark);
+  background: var(--bg-dark);
+  color: var(--text-dark);
+}
+
+.username-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+  transform: scale(1.02);
+}
+
+.username-save {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: 25px;
+  font-weight: 600;
+  min-width: 100px;
+  transition: all var(--transition-fast);
+}
+
+.username-save:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 8px 25px rgba(0, 212, 255, 0.4);
+}
+
+.username-info {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.username-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: var(--gradient-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 1.3rem;
+  box-shadow: 0 6px 20px rgba(0, 212, 255, 0.4);
+  transition: all var(--transition-fast);
+}
+
+.username-avatar:hover {
+  transform: scale(1.1) rotate(5deg);
+  box-shadow: 0 8px 25px rgba(0, 212, 255, 0.6);
+}
+
+.username-details h3 {
+  margin: 0 0 var(--spacing-xs) 0;
+  color: var(--primary);
+  font-size: 1.2rem;
+}
+
+.username-details p {
+  margin: 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+body.dark .username-details p {
+  color: #999;
+}
 .premium-badge {
   background: var(--gradient-primary);
   color: white;
@@ -2338,8 +2494,46 @@ body.dark .notification.warning {
   }
   
   .notification {
+    right: var(--spacing-sm);
+    top: 60px;
     right: var(--spacing-md);
+    top: 70px;
     max-width: calc(100vw - 2rem);
+    min-width: auto;
+  
+  .notification:nth-child(2) {
+    top: 120px;
+  }
+  
+  .notification:nth-child(3) {
+    top: 180px;
+  }
+  }
+  
+  .notification:nth-child(2) {
+    top: 130px;
+  }
+  
+  .notification:nth-child(3) {
+    top: 190px;
+  }
+  
+  .notification:nth-child(4) {
+    top: 250px;
+  }
+  
+  .username-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .username-input {
+    min-width: auto;
+  }
+  
+  .username-info {
+    flex-direction: column;
+    text-align: center;
   }
 }
 
