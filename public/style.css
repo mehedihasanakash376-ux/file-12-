@@ -591,11 +591,16 @@ body.dark .sort-select {
   transform: translateY(20px);
   position: relative;
   overflow: hidden;
+  backdrop-filter: blur(10px);
+  background: linear-gradient(135deg, var(--card-bg-light) 0%, rgba(0, 212, 255, 0.02) 100%);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 212, 255, 0.05);
 }
 
 body.dark .post-card {
   background: var(--card-bg-dark);
   border-color: var(--border-dark);
+  background: linear-gradient(135deg, var(--card-bg-dark) 0%, rgba(0, 212, 255, 0.05) 100%);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 212, 255, 0.1);
 }
 
 .post-card::before {
@@ -604,15 +609,31 @@ body.dark .post-card {
   top: 0;
   left: -100%;
   width: 100%;
-  height: 2px;
+  height: 3px;
   background: var(--gradient-primary);
   transition: left var(--transition-smooth);
+  box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
 }
 
+.post-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at 50% 0%, rgba(0, 212, 255, 0.03), transparent 70%);
+  opacity: 0;
+  transition: opacity var(--transition-smooth);
+  pointer-events: none;
+}
 .post-card:hover::before {
   left: 0;
 }
 
+.post-card:hover::after {
+  opacity: 1;
+}
 .post-card.fade-in {
   opacity: 1;
   transform: translateY(0);
@@ -623,21 +644,24 @@ body.dark .post-card {
   from {
     opacity: 0;
     transform: translateY(30px);
+    filter: blur(5px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
+    filter: blur(0px);
   }
 }
 
 .post-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 40px rgba(0, 212, 255, 0.2);
+  transform: translateY(-8px) scale(1.01);
+  box-shadow: 0 20px 60px rgba(0, 212, 255, 0.25), 0 0 0 1px rgba(0, 212, 255, 0.2);
   border-color: var(--primary);
+  backdrop-filter: blur(15px);
 }
 
 body.dark .post-card:hover {
-  box-shadow: 0 10px 40px rgba(0, 212, 255, 0.3);
+  box-shadow: 0 20px 60px rgba(0, 212, 255, 0.4), 0 0 0 1px rgba(0, 212, 255, 0.3);
 }
 
 .post-header {
