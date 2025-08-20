@@ -484,51 +484,7 @@
 
     // Check authentication
     async function checkAuth() {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        window.location.href = '/auth.html?redirect=' + encodeURIComponent(window.location.pathname);
-        return false;
-      }
-
-      // Check token expiry
-      const tokenExpiry = localStorage.getItem('tokenExpiry');
-      if (tokenExpiry && Date.now() > parseInt(tokenExpiry)) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        localStorage.removeItem('username');
-        localStorage.removeItem('tokenExpiry');
-        window.location.href = '/auth.html?redirect=' + encodeURIComponent(window.location.pathname);
-        return false;
-      }
-
-      try {
-        const response = await fetch('/api/auth/me', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          currentUser = data.user;
-          return true;
-        } else {
-          console.log('Token validation failed, status:', response.status);
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          localStorage.removeItem('username');
-          window.location.href = '/auth.html?redirect=' + encodeURIComponent(window.location.pathname);
-          return false;
-        }
-      } catch (error) {
-        console.error('Auth check error:', error);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        localStorage.removeItem('username');
-        localStorage.removeItem('tokenExpiry');
-        window.location.href = '/auth.html?redirect=' + encodeURIComponent(window.location.pathname);
-        return false;
-      }
+      return true; // No authentication required
     }
 
     // Initialize
@@ -610,15 +566,7 @@
       showLoading();
       
       try {
-        const headers = {};
-        const token = localStorage.getItem('token');
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
-
-        const response = await fetch(`/api/search?q=${encodeURIComponent(query)}&type=${type}`, {
-          headers
-        });
+        const response = await fetch(`/api/search?q=${encodeURIComponent(query)}&type=${type}`);
 
         if (response.ok) {
           const data = await response.json();
@@ -673,35 +621,25 @@
       usersCount.textContent = `${users.length} result${users.length !== 1 ? 's' : ''}`;
 
       usersResults.innerHTML = users.map(user => {
-        const timeAgo = getTimeAgo(new Date(user.lastSeen));
+        const userName = user.username || user.user || 'Anonymous';
         
         return `
           <div class="user-result">
             <div class="user-avatar">
-              ${user.username.charAt(0).toUpperCase()}
+              ${userName.charAt(0).toUpperCase()}
             </div>
             <div class="user-info">
               <div class="user-name">
-                ${user.username}
-                ${user.isPremium ? '<span class="premium-badge">✨ Premium</span>' : ''}
+                ${userName}
               </div>
-              ${user.bio ? `<div class="user-bio">${user.bio}</div>` : ''}
-              <div class="user-status">
-                <div class="${user.isOnline ? 'online-indicator' : 'offline-indicator'}"></div>
-                <span>${user.isOnline ? 'Online' : `Last seen ${timeAgo}`}</span>
-              </div>
+              <div class="user-bio">Community member</div>
             </div>
             <div style="display: flex; gap: 0.5rem; margin-left: auto;">
-              <button class="btn btn-outline" onclick="viewUserProfile('${user.username}')" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">👤 Profile</button>
-              <button class="btn btn-primary" onclick="startChat('${user._id}')" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">💬 Chat</button>
+              <button class="btn btn-outline" onclick="viewUserProfile('${userName}')" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">👤 View</button>
             </div>
           </div>
         `;
       }).join('');
-    }
-    
-    function startChat(userId) {
-      window.location.href = `/chat.html?user=${userId}`;
     }
 
     function displayPosts(posts) {
@@ -719,17 +657,16 @@
 
       postsResults.innerHTML = posts.map(post => {
         const timeAgo = getTimeAgo(new Date(post.createdAt));
-        const author = post.userId;
+        const author = post.user || 'Anonymous';
         
         return `
           <div class="post-result" onclick="viewPost('${post._id}')">
             <div class="post-author">
               <div class="post-author-avatar">
-                ${author.username.charAt(0).toUpperCase()}
+                ${author.charAt(0).toUpperCase()}
               </div>
-              <span class="post-author-name" onclick="event.stopPropagation(); viewUserProfile('${author.username}')">
-                ${author.username}
-                ${author.isPremium ? '<span class="premium-badge">✨</span>' : ''}
+              <span class="post-author-name" onclick="event.stopPropagation(); viewUserProfile('${author}')">
+                ${author}
               </span>
               <span class="post-time">${timeAgo}</span>
             </div>
@@ -738,7 +675,6 @@
             </div>
             <div class="post-stats">
               <span>❤️ ${post.likes || 0}</span>
-              <span>💬 ${post.comments?.length || 0}</span>
               ${post.media?.length ? `<span>📎 ${post.media.length} file${post.media.length !== 1 ? 's' : ''}</span>` : ''}
             </div>
           </div>
@@ -747,7 +683,7 @@
     }
 
     function viewUserProfile(username) {
-      window.location.href = `/profile.html?user=${username}`;
+      window.location.href = `/profile.html`;
     }
 
     function viewPost(postId) {

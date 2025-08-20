@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Create a new post" />
+  <meta name="theme-color" content="#00d4ff" />
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/png" href="/icon.png">
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <title>New Post - Nafij's Social Share</title>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header" role="banner">
+    <h1>🚀 Nafij's Social Share</h1>
+    <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+      <span id="theme-icon">🌙</span>
+    </button>
+  </header>
+
+  <!-- Main Content -->
+  <main class="container" role="main">
+    <!-- Navigation -->
+    <nav class="card navigation-card" role="navigation" aria-label="Site navigation">
+      <div class="nav-buttons">
+        <a href="/" class="btn btn-outline">🏠 Home</a>
+        <a href="/post.html" class="btn btn-primary">✍️ New Post</a>
+        <a href="/all.html" class="btn btn-outline">📋 All Posts</a>
+        <a href="/profile.html" class="btn btn-outline">👤 Profile</a>
+        <a href="/search.html" class="btn btn-outline">🔍 Search</a>
+        <a href="/admin.html" class="btn btn-outline">⚙️ Admin</a>
+      </div>
+    </nav>
+
+    <!-- Post Creation Form -->
+    <section class="card post-form-card fade-in" aria-labelledby="post-heading">
+      <h2 id="post-heading">Share Something Amazing</h2>
+      <form id="post-form" method="POST" action="/api/posts" enctype="multipart/form-data" role="form">
+        <div class="form-group">
+          <label for="username">Username (max 20 chars) *</label>
+          <input 
+            type="text" 
+            id="username" 
+            name="user" 
+            placeholder="Enter your username" 
+            maxlength="20" 
+            required 
+            aria-describedby="username-help"
+          />
+          <small id="username-help">Your username will be saved for future posts</small>
+        </div>
+
+        <div class="form-group">
+          <label for="post-text">What's on your mind?</label>
+          <textarea 
+            id="post-text" 
+            name="text" 
+            placeholder="Share your thoughts, use emojis! 🎉" 
+            rows="4"
+            aria-describedby="text-help"
+          ></textarea>
+          <small id="text-help">Supports emojis and multi-line text</small>
+        </div>
+
+        <div class="form-group">
+          <label for="file-input">Upload Files</label>
+          <div class="file-upload-area" id="file-upload-area">
+            <input 
+              type="file" 
+              id="file-input" 
+              name="file" 
+              multiple 
+              accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.zip,.rar"
+              aria-describedby="file-help"
+            />
+            <div class="file-upload-text">
+              <span>📎 Drag & drop files here or click to browse</span>
+              <small>Max 50MB per file • Images, videos, audio, documents supported</small>
+            </div>
+          </div>
+          <small id="file-help">Multiple files supported • Max 50MB per file • Total 200MB per post</small>
+        </div>
+
+        <div id="file-previews" class="file-previews"></div>
+
+        <div id="upload-progress" class="upload-progress" style="display: none;" role="progressbar" aria-live="polite">
+          <div class="progress-bar">
+            <div class="progress-fill"></div>
+          </div>
+          <div class="progress-info">
+            <span class="progress-text">Uploading...</span>
+            <span class="progress-percentage">0%</span>
+          </div>
+          <button type="button" id="cancel-upload" class="btn-outline">Cancel</button>
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="submit-btn">
+          <span>🚀 Share Post</span>
+        </button>
+      </form>
+    </section>
+  </main>
+
+  <!-- Scripts -->
+  <script>
+    // Global state
+    let selectedFiles = [];
+    let uploadController = null;
+    const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+    const MAX_TOTAL_SIZE = 200 * 1024 * 1024; // 200MB
+
+    // Theme Management
+    const themeToggle = document.getElementById('theme-toggle');
+    const themeIcon = document.getElementById('theme-icon');
+    const body = document.body;
+
+    // Load saved theme
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      body.classList.add('dark');
+      themeIcon.textContent = '☀️';
+    }
+
+    themeToggle.addEventListener('click', () => {
+      body.classList.toggle('dark');
+      const isDark = body.classList.contains('dark');
+      themeIcon.textContent = isDark ? '☀️' : '🌙';
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    });
+
+    // Username Management
+    const usernameInput = document.getElementById('username');
+    const savedUsername = localStorage.getItem('username');
+    if (savedUsername) {
+      usernameInput.value = savedUsername;
+    }
+
+    usernameInput.addEventListener('input', (e) => {
+      localStorage.setItem('username', e.target.value);
+    });
+
+    // File Upload Handling
+    const fileInput = document.getElementById('file-input');
+    const fileUploadArea = document.getElementById('file-upload-area');
+    const filePreviewsContainer = document.getElementById('file-previews');
+
+    // Drag and drop functionality
+    fileUploadArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      fileUploadArea.classList.add('drag-over');
+    });
+
+    fileUploadArea.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      fileUploadArea.classList.remove('drag-over');
+    });
+
+    fileUploadArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      fileUploadArea.classList.remove('drag-over');
+      const files = Array.from(e.dataTransfer.files);
+      handleFileSelection(files);
+    });
+
+    // Click to upload
+    fileUploadArea.addEventListener('click', () => {
+      fileInput.click();
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      const files = Array.from(e.target.files);
+      handleFileSelection(files);
+    });
+
+    function handleFileSelection(files) {
+      // Validate file sizes
+      const validFiles = [];
+      let totalSize = selectedFiles.reduce((sum, file) => sum + file.size, 0);
+      
+      for (const file of files) {
+        if (file.size > MAX_FILE_SIZE) {
+          showNotification(`File "${file.name}" is too large. Max size is 50MB.`, 'error');
+          continue;
+        }
+        
+        if (totalSize + file.size > MAX_TOTAL_SIZE) {
+          showNotification(`Total file size would exceed 200MB limit.`, 'error');
+          break;
+        }
+        
+        validFiles.push(file);
+        totalSize += file.size;
+      }
+      
+      selectedFiles = [...selectedFiles, ...validFiles];
+      displayFilePreviews();
+    }
+
+    function displayFilePreviews() {
+      filePreviewsContainer.innerHTML = '';
+      
+      if (selectedFiles.length === 0) return;
+      
+      selectedFiles.forEach((file, index) => {
+        const preview = document.createElement('div');
+        preview.className = 'file-preview';
+        
+        // Add file size info
+        const fileSize = formatFileSize(file.size);
+        
+        if (file.type.startsWith('image/')) {
+          const img = document.createElement('img');
+          img.src = URL.createObjectURL(file);
+          img.alt = file.name;
+          img.onload = () => URL.revokeObjectURL(img.src);
+          preview.appendChild(img);
+        } else if (file.type.startsWith('video/')) {
+          const video = document.createElement('video');
+          video.src = URL.createObjectURL(file);
+          video.controls = true;
+          video.onloadeddata = () => URL.revokeObjectURL(video.src);
+          preview.appendChild(video);
+        } else if (file.type.startsWith('audio/')) {
+          const audio = document.createElement('audio');
+          audio.src = URL.createObjectURL(file);
+          audio.controls = true;
+          audio.onloadeddata = () => URL.revokeObjectURL(audio.src);
+          preview.appendChild(audio);
+        } else {
+          const fileIcon = document.createElement('div');
+          fileIcon.className = 'file-icon';
+          fileIcon.textContent = '📄';
+          preview.appendChild(fileIcon);
+        }
+
+        const fileName = document.createElement('span');
+        fileName.className = 'file-name';
+        fileName.textContent = `${file.name} (${fileSize})`;
+        preview.appendChild(fileName);
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'file-remove';
+        removeBtn.textContent = '×';
+        removeBtn.setAttribute('aria-label', `Remove ${file.name}`);
+        removeBtn.onclick = () => removeFile(index);
+        preview.appendChild(removeBtn);
+
+        filePreviewsContainer.appendChild(preview);
+      });
+    }
+
+    function removeFile(index) {
+      selectedFiles.splice(index, 1);
+      displayFilePreviews();
+    }
+
+    // Form submission
+    const postForm = document.getElementById('post-form');
+    const submitBtn = document.getElementById('submit-btn');
+    const progressContainer = document.getElementById('upload-progress');
+    const progressFill = document.querySelector('.progress-fill');
+    const progressText = document.querySelector('.progress-text');
+    const progressPercentage = document.querySelector('.progress-percentage');
+    const cancelBtn = document.getElementById('cancel-upload');
+    
+    postForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      if (selectedFiles.length === 0 && !document.getElementById('post-text').value.trim()) {
+        showNotification('Please add some content or files to share.', 'warning');
+        return;
+      }
+      
+      const formData = new FormData();
+      formData.append('user', document.getElementById('username').value);
+      formData.append('text', document.getElementById('post-text').value);
+      
+      if (selectedFiles.length > 0) {
+        selectedFiles.forEach(file => {
+          formData.append('files', file);
+        });
+      }
+
+      submitBtn.innerHTML = '<span>🚀 Posting...</span>';
+      submitBtn.disabled = true;
+      
+      // Show progress bar
+      progressContainer.style.display = 'block';
+      
+      // Create abort controller for cancellation
+      uploadController = new AbortController();
+
+      try {
+        // Use XMLHttpRequest for progress tracking
+        const xhr = new XMLHttpRequest();
+        
+        // Track upload progress
+        xhr.upload.addEventListener('progress', (e) => {
+          if (e.lengthComputable) {
+            const percentComplete = (e.loaded / e.total) * 100;
+            progressFill.style.width = percentComplete + '%';
+            progressPercentage.textContent = Math.round(percentComplete) + '%';
+            
+            // Calculate estimated time
+            const elapsed = Date.now() - uploadStartTime;
+            const rate = e.loaded / elapsed;
+            const remaining = (e.total - e.loaded) / rate;
+            
+            if (remaining > 1000) {
+              progressText.textContent = `Uploading... ${Math.round(remaining / 1000)}s remaining`;
+            } else {
+              progressText.textContent = 'Uploading... Almost done';
+            }
+          }
+        });
+        
+        const uploadStartTime = Date.now();
+        
+        const response = await new Promise((resolve, reject) => {
+          xhr.onload = () => resolve(xhr);
+          xhr.onerror = () => reject(new Error('Upload failed'));
+          xhr.onabort = () => reject(new Error('Upload cancelled'));
+          
+          xhr.open('POST', '/api/posts');
+          xhr.send(formData);
+        });
+
+        if (xhr.status === 200 || xhr.status === 201) {
+          const result = JSON.parse(xhr.responseText);
+          postForm.reset();
+          selectedFiles = [];
+          displayFilePreviews();
+          showNotification('Post shared successfully! 🎉', 'success');
+          
+          // Redirect to home after successful post
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 2000);
+        } else {
+          const error = JSON.parse(xhr.responseText);
+          throw new Error(error.error || 'Upload failed');
+        }
+        
+      } catch (error) {
+        console.error('Error posting:', error);
+        
+        if (error.message === 'Upload cancelled') {
+          showNotification('Upload cancelled', 'info');
+        } else {
+          showNotification(error.message || 'Failed to post. Please try again.', 'error');
+        }
+      } finally {
+        submitBtn.innerHTML = '<span>🚀 Share Post</span>';
+        submitBtn.disabled = false;
+        progressContainer.style.display = 'none';
+        uploadController = null;
+      }
+    });
+    
+    // Cancel upload functionality
+    cancelBtn.addEventListener('click', () => {
+      if (uploadController) {
+        uploadController.abort();
+      }
+    });
+
+    // Utility function to format file sizes
+    function formatFileSize(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    function showNotification(message, type = 'info') {
+      const notification = document.createElement('div');
+      notification.className = `notification ${type}`;
+      notification.textContent = message;
+      
+      document.body.appendChild(notification);
+      
+      setTimeout(() => {
+        notification.classList.add('show');
+      }, 100);
+      
+      setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 300);
+      }, 3000);
+    }
+
+    // Initialize app
+    document.addEventListener('DOMContentLoaded', () => {
+      // Add intersection observer for animations
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('fade-in');
+          }
+        });
+      });
+
+      // Observe all cards for animation
+      document.querySelectorAll('.card').forEach(card => {
+        observer.observe(card);
+      });
+    });
+  </script>
+</body>
+</html>

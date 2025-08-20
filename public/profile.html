@@ -378,68 +378,68 @@
     <div class="profile-header">
       <div class="profile-info">
         <div class="profile-avatar" id="profile-avatar">
-          👤
+          🚀
         </div>
         <div class="profile-details">
-          <div class="profile-name" id="profile-name">
-            Loading...
+          <div class="profile-name">
+            Nafij's Social Share
           </div>
-          <div class="profile-status" id="profile-status">
-            Loading...
+          <div class="profile-status">
+            Community Platform
           </div>
-          <div class="profile-bio" id="profile-bio" style="display: none;">
+          <div class="profile-bio">
+            Welcome to Nafij's Social Share! This is a community platform where users can share posts, images, videos, and files. Built with ❤️ by NafijThePro25.
           </div>
         </div>
       </div>
 
       <div class="profile-stats">
         <div class="stat-item">
-          <span class="stat-number" id="posts-stat">0</span>
+          <span class="stat-number" id="posts-stat">-</span>
           <span class="stat-label">Posts</span>
         </div>
         <div class="stat-item">
-          <span class="stat-number" id="likes-stat">0</span>
+          <span class="stat-number" id="likes-stat">-</span>
           <span class="stat-label">Likes</span>
         </div>
         <div class="stat-item">
-          <span class="stat-number" id="joined-stat">-</span>
-          <span class="stat-label">Joined</span>
+          <span class="stat-number" id="users-stat">-</span>
+          <span class="stat-label">Users</span>
         </div>
       </div>
 
       <div class="profile-actions" id="profile-actions">
-        <!-- Actions will be populated based on user -->
+        <a href="/" class="btn btn-outline">🏠 Home</a>
+        <a href="/post.html" class="btn btn-primary">✍️ New Post</a>
+        <a href="/all.html" class="btn btn-outline">📋 All Posts</a>
       </div>
     </div>
 
     <div class="posts-section">
       <div class="posts-header">
-        <h2 class="posts-title">📝 Posts</h2>
-        <span class="posts-count" id="posts-count">Loading...</span>
+        <h2 class="posts-title">📊 Platform Statistics</h2>
+        <span class="posts-count" id="posts-count">Live data</span>
       </div>
 
-      <div class="loading-posts" id="loading-posts">
-        <div class="loading-spinner"></div>
-        <p>Loading posts...</p>
+      <div class="posts-grid" id="stats-grid">
+        <!-- Statistics will be populated here -->
       </div>
 
-      <div class="posts-grid" id="posts-grid" style="display: none;">
-        <!-- Posts will be populated here -->
-      </div>
-
-      <div class="empty-posts" id="empty-posts" style="display: none;">
-        <h3>No posts yet</h3>
-        <p>This user hasn't shared anything yet.</p>
+      <div class="posts-section">
+        <div class="posts-header">
+          <h2 class="posts-title">🔥 Recent Popular Posts</h2>
+        </div>
+        <div class="posts-grid" id="recent-posts">
+          <div class="loading-posts">
+            <div class="loading-spinner"></div>
+            <p>Loading recent posts...</p>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
   <script>
-    let currentUser = null;
-    let profileUser = null;
-    let currentPage = 0;
-    let isLoading = false;
-    let hasMore = true;
 
     // Theme management
     if (localStorage.theme === 'dark' || (!localStorage.theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -450,220 +450,67 @@
       window.history.back();
     }
 
-    // Check authentication
-    async function checkAuth() {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        window.location.href = '/auth.html?redirect=' + encodeURIComponent(window.location.pathname);
-        return false;
-      }
-
-      // Check token expiry
-      const tokenExpiry = localStorage.getItem('tokenExpiry');
-      if (tokenExpiry && Date.now() > parseInt(tokenExpiry)) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        localStorage.removeItem('username');
-        localStorage.removeItem('tokenExpiry');
-        window.location.href = '/auth.html?redirect=' + encodeURIComponent(window.location.pathname);
-        return false;
-      }
-      try {
-        const response = await fetch('/api/auth/me', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          currentUser = data.user;
-          return true;
-        } else {
-          console.log('Token validation failed, status:', response.status);
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          localStorage.removeItem('username');
-          window.location.href = '/auth.html?redirect=' + encodeURIComponent(window.location.pathname);
-          return false;
-        }
-      } catch (error) {
-        console.error('Auth check error:', error);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        localStorage.removeItem('username');
-        localStorage.removeItem('tokenExpiry');
-        window.location.href = '/auth.html?redirect=' + encodeURIComponent(window.location.pathname);
-        return false;
-      }
-    }
-
     // Initialize
     document.addEventListener('DOMContentLoaded', async () => {
-      if (!(await checkAuth())) return;
-
-      const urlParams = new URLSearchParams(window.location.search);
-      const username = urlParams.get('user');
-
-      if (!username) {
-        window.location.href = '/';
-        return;
-      }
-
-      await loadUserProfile(username);
-      await loadUserPosts(username);
+      await loadPlatformStats();
+      await loadRecentPosts();
     });
 
-    async function loadUserProfile(username) {
+    async function loadPlatformStats() {
       try {
-        const headers = {};
-        const token = localStorage.getItem('token');
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
-
-        const response = await fetch(`/api/users/${username}`, { headers });
-
-        if (!response.ok) {
-          if (response.status === 404) {
-            showError('User not found');
-          } else {
-            showError('Failed to load user profile');
-          }
-          return;
-        }
-
-        const data = await response.json();
-        profileUser = data.user;
-        displayUserProfile(data.user, data.totalPosts);
+        const response = await fetch('/api/stats');
+        const stats = await response.json();
         
-        // Update page title
-        document.title = `${data.user.username} - Nafij's Social Share`;
+        document.getElementById('posts-stat').textContent = stats.totalPosts || 0;
+        document.getElementById('likes-stat').textContent = stats.totalLikes || 0;
+        document.getElementById('users-stat').textContent = stats.totalUsers || 0;
         
+        // Display additional stats
+        const statsGrid = document.getElementById('stats-grid');
+        statsGrid.innerHTML = `
+          <div class="post-card">
+            <h3>📈 Platform Overview</h3>
+            <p><strong>Total Posts:</strong> ${stats.totalPosts || 0}</p>
+            <p><strong>Total Likes:</strong> ${stats.totalLikes || 0}</p>
+            <p><strong>Active Users:</strong> ${stats.totalUsers || 0}</p>
+            <p><strong>Files Shared:</strong> ${stats.totalFiles || 0}</p>
+          </div>
+          <div class="post-card">
+            <h3>🎯 Features</h3>
+            <p>✅ File Sharing (Images, Videos, Audio)</p>
+            <p>✅ Real-time Updates</p>
+            <p>✅ Like System</p>
+            <p>✅ Search Functionality</p>
+            <p>✅ Admin Panel</p>
+          </div>
+        `;
       } catch (error) {
-        console.error('Error loading user profile:', error);
-        showError('Failed to load user profile');
+        console.error('Error loading platform stats:', error);
       }
     }
 
-    function displayUserProfile(user, totalPosts) {
-      const avatar = document.getElementById('profile-avatar');
-      const name = document.getElementById('profile-name');
-      const status = document.getElementById('profile-status');
-      const bio = document.getElementById('profile-bio');
-      const postsCount = document.getElementById('posts-count');
-      const actions = document.getElementById('profile-actions');
-
-      // Avatar
-      avatar.textContent = user.username.charAt(0).toUpperCase();
-      if (user.isOnline) {
-        avatar.innerHTML += '<div class="online-indicator"></div>';
-      }
-
-      // Name with premium badge
-      name.innerHTML = `
-        ${user.username}
-        ${user.isPremium ? '<span class="premium-badge">✨ Premium</span>' : ''}
-      `;
-
-      // Status
-      const timeAgo = getTimeAgo(new Date(user.lastSeen));
-      status.innerHTML = `
-        <div class="${user.isOnline ? 'online-indicator' : 'offline-indicator'}" style="width: 8px; height: 8px; border-radius: 50%; background: ${user.isOnline ? 'var(--accent)' : '#666'};"></div>
-        ${user.isOnline ? 'Online' : `Last seen ${timeAgo}`}
-      `;
-
-      // Bio
-      if (user.bio) {
-        bio.textContent = user.bio;
-        bio.style.display = 'block';
-      }
-
-      // Stats
-      document.getElementById('posts-stat').textContent = totalPosts;
-      document.getElementById('joined-stat').textContent = new Date(user.createdAt).toLocaleDateString('en-US', { 
-        month: 'short', 
-        year: 'numeric' 
-      });
-
-      // Posts count
-      postsCount.textContent = `${totalPosts} post${totalPosts !== 1 ? 's' : ''}`;
-
-      // Actions
-      if (currentUser.id === user._id) {
-        // Own profile
-        actions.innerHTML = `
-          <button class="btn btn-primary" onclick="editProfile()">✏️ Edit Profile</button>
-        `;
-      } else {
-        // Other user's profile
-        actions.innerHTML = `
-          <button class="btn btn-primary" onclick="startChat('${user._id}')">💬 Message</button>
-          <button class="btn btn-outline" onclick="followUser('${user._id}')">👥 Follow</button>
-        `;
-      }
-    }
-
-    async function loadUserPosts(username, page = 0) {
-      if (isLoading || (!hasMore && page > 0)) return;
-      
-      isLoading = true;
-
+    async function loadRecentPosts() {
       try {
-        const headers = {};
-        const token = localStorage.getItem('token');
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
-
-        const response = await fetch(`/api/users/${username}?page=${page}&limit=10`, { headers });
-
+        const response = await fetch('/api/posts/top?limit=5');
         if (response.ok) {
-          const data = await response.json();
+          const posts = await response.json();
           
-          if (page === 0) {
-            displayPosts(data.posts);
-            hasMore = data.hasMore;
-          } else {
-            appendPosts(data.posts);
-            hasMore = data.hasMore;
+          const recentPostsContainer = document.getElementById('recent-posts');
+          if (posts.length === 0) {
+            recentPostsContainer.innerHTML = '<div class="empty-posts"><h3>No posts yet</h3><p>Be the first to share something!</p></div>';
+            return;
           }
-
-          // Calculate total likes
-          const totalLikes = data.posts.reduce((sum, post) => sum + (post.likes || 0), 0);
-          document.getElementById('likes-stat').textContent = totalLikes;
+          
+          recentPostsContainer.innerHTML = posts.map(post => createPostHTML(post)).join('');
         }
       } catch (error) {
-        console.error('Error loading user posts:', error);
-      } finally {
-        isLoading = false;
-        document.getElementById('loading-posts').style.display = 'none';
+        console.error('Error loading recent posts:', error);
       }
-    }
-
-    function displayPosts(posts) {
-      const postsGrid = document.getElementById('posts-grid');
-      const emptyPosts = document.getElementById('empty-posts');
-
-      if (posts.length === 0) {
-        postsGrid.style.display = 'none';
-        emptyPosts.style.display = 'block';
-        return;
-      }
-
-      postsGrid.style.display = 'block';
-      emptyPosts.style.display = 'none';
-      
-      postsGrid.innerHTML = posts.map(post => createPostHTML(post)).join('');
-    }
-
-    function appendPosts(posts) {
-      const postsGrid = document.getElementById('posts-grid');
-      postsGrid.innerHTML += posts.map(post => createPostHTML(post)).join('');
     }
 
     function createPostHTML(post) {
       const timeAgo = getTimeAgo(new Date(post.createdAt));
+      const userName = post.user || 'Anonymous';
       
       let mediaHTML = '';
       if (post.media && post.media.length > 0) {
@@ -671,13 +518,13 @@
         if (firstMedia.mimetype?.startsWith('image/')) {
           mediaHTML = `
             <div class="post-media">
-              <img src="${firstMedia.url}" alt="Post image" onclick="viewPost('${post._id}')" style="cursor: pointer;" />
+              <img src="${firstMedia.url}" alt="Post image" style="max-width: 100%; height: 150px; object-fit: cover;" />
             </div>
           `;
         } else if (firstMedia.mimetype?.startsWith('video/')) {
           mediaHTML = `
             <div class="post-media">
-              <video controls onclick="viewPost('${post._id}')" style="cursor: pointer;">
+              <video controls style="max-width: 100%; height: 150px;">
                 <source src="${firstMedia.url}" type="${firstMedia.mimetype}">
               </video>
             </div>
@@ -686,8 +533,9 @@
       }
 
       return `
-        <div class="post-card" onclick="viewPost('${post._id}')">
+        <div class="post-card">
           <div class="post-header">
+            <strong>${userName}</strong>
             <span class="post-time">${timeAgo}</span>
           </div>
           
@@ -697,57 +545,10 @@
           
           <div class="post-stats">
             <span>❤️ ${post.likes || 0}</span>
-            <span>💬 ${post.comments?.length || 0}</span>
             ${post.media?.length ? `<span>📎 ${post.media.length}</span>` : ''}
           </div>
         </div>
       `;
-    }
-
-    function viewPost(postId) {
-      window.location.href = `/#post-${postId}`;
-    }
-
-    function startChat(userId) {
-      window.location.href = `/chat.html?user=${userId}`;
-    }
-
-    function followUser(userId) {
-      // Follow functionality would be implemented here
-      showNotification('Follow feature coming soon!', 'info');
-    }
-
-    function editProfile() {
-      // Edit profile functionality would be implemented here
-      showNotification('Edit profile feature coming soon!', 'info');
-    }
-
-    function showError(message) {
-      const container = document.querySelector('.profile-container');
-      container.innerHTML = `
-        <div class="empty-posts">
-          <h3>❌ Error</h3>
-          <p>${message}</p>
-          <button class="btn btn-primary" onclick="goBack()">Go Back</button>
-        </div>
-      `;
-    }
-
-    function showNotification(message, type = 'info') {
-      const notification = document.createElement('div');
-      notification.className = `notification ${type}`;
-      notification.textContent = message;
-      
-      document.body.appendChild(notification);
-      
-      setTimeout(() => {
-        notification.classList.add('show');
-      }, 100);
-      
-      setTimeout(() => {
-        notification.classList.remove('show');
-        setTimeout(() => notification.remove(), 300);
-      }, 3000);
     }
 
     function getTimeAgo(date) {
@@ -761,16 +562,6 @@
       
       return date.toLocaleDateString();
     }
-
-    // Infinite scroll
-    window.addEventListener('scroll', () => {
-      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 1000) {
-        if (hasMore && !isLoading && profileUser) {
-          currentPage++;
-          loadUserPosts(profileUser.username, currentPage);
-        }
-      }
-    });
   </script>
 </body>
 </html>

@@ -7,7 +7,7 @@
   <link rel="icon" type="image/png" href="/icon.png">
   <meta name="theme-color" content="#000000">
   <link rel="stylesheet" href="style.css">
-  <title>All Posts</title>
+  <title>All Posts - Nafij's Social Share</title>
   <style>
     body {
       font-family: sans-serif;
@@ -70,22 +70,6 @@
       document.body.classList.toggle('dark');
       localStorage.theme = document.body.classList.contains('dark') ? 'dark' : 'light';
     }
-    
-    // Check authentication
-    const token = localStorage.getItem('token');
-    if (!token) {
-      window.location.href = '/auth.html?redirect=' + encodeURIComponent(window.location.pathname);
-    } else {
-      // Check token expiry
-      const tokenExpiry = localStorage.getItem('tokenExpiry');
-      if (tokenExpiry && Date.now() > parseInt(tokenExpiry)) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        localStorage.removeItem('username');
-        localStorage.removeItem('tokenExpiry');
-        window.location.href = '/auth.html?redirect=' + encodeURIComponent(window.location.pathname);
-      }
-    }
   </script>
 
   <button onclick="toggleTheme()">🌙 Toggle Theme</button>
@@ -93,10 +77,10 @@
   <h1>All Posts - Nafij's File Sharing</h1>
   <nav>
     <a href="/">🏠 Home</a> |
+    <a href="/post.html">✍️ New Post</a> |
     <a href="/all.html">📋 All Posts</a> |
-    <a href="/chat.html">Chat</a> |
-    <a href="/search.html">Search</a> |
-    <a href="/info.html">ℹ️ About</a> |
+    <a href="/profile.html">👤 Profile</a> |
+    <a href="/search.html">🔍 Search</a> |
     <a href="/admin.html">⚙️ Admin</a>
   </nav>
 
@@ -108,12 +92,7 @@
     navigator.serviceWorker.register('/service-worker.js');
   }
 
-  const headers = {};
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  fetch('/api/posts', { headers })
+  fetch('/api/posts')
     .then(res => res.json())
     .then(data => {
       const container = document.getElementById('post-previews');
@@ -134,8 +113,7 @@
         const text = post.text || "";
         
         let mediaHTML = '';
-        if (post.media && post.media.length > 0) {
-          const firstMedia = post.media[0];
+          const name = post.user || "Anonymous";
           const mediaUrl = firstMedia.url;
           
           if (firstMedia.mimetype?.startsWith("image/")) {
@@ -163,7 +141,7 @@
 
         const el = document.createElement('div');
         el.className = 'post-preview';
-        el.innerHTML = `
+            <p><strong>${name}</strong>${text ? `: ${text}` : ""}</p>
           <p><strong>${name}${isPremium ? ' <span class="premium-badge">✨ Premium</span>' : ''}</strong>${text ? `: ${text}` : ""}</p>
           ${mediaHTML}
           <p>
@@ -180,24 +158,21 @@
     });
 
   function likePost(postId) {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      alert('Please login to like posts');
-      return;
-    }
-    
     fetch(`/api/posts/${postId}/like`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
+      method: 'POST'
     })
     .then(res => {
       if (res.ok) {
-        const countSpan = document.getElementById(`like-count-${postId}`);
+        return res.json();
       } else {
-        alert("Failed to like post.");
+        throw new Error('Failed to like post');
       }
+    })
+    .then(result => {
+        const countSpan = document.getElementById(`like-count-${postId}`);
+        if (countSpan) {
+          countSpan.textContent = result.likes;
+        }
     })
     .catch(err => {
       console.error("Like error:", err);
