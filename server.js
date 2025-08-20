@@ -84,6 +84,34 @@ const postSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  comments: [{
+    id: {
+      type: String,
+      default: () => new mongoose.Types.ObjectId().toString()
+    },
+    user: {
+      type: String,
+      required: true,
+      maxlength: 20
+    },
+    text: {
+      type: String,
+      required: true,
+      maxlength: 1000
+    },
+    parentId: {
+      type: String,
+      default: null
+    },
+    likes: {
+      type: Number,
+      default: 0
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
   hashtags: [String],
   createdAt: {
     type: Date,
@@ -111,17 +139,18 @@ const upload = multer({
     files: 10 // Max 10 files per upload
   },
   fileFilter: (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|gif|webp|mp4|webm|avi|mov|mp3|wav|ogg|pdf|doc|docx|txt|zip|rar/;
+    const allowedTypes = /jpeg|jpg|png|gif|webp|mp4|webm|avi|mov|mp3|wav|ogg|pdf|doc|docx|txt|zip|rar|7z/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
     const mimetype = file.mimetype.startsWith('image/') || 
                     file.mimetype.startsWith('video/') || 
                     file.mimetype.startsWith('audio/') ||
-                    ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain', 'application/zip', 'application/x-rar-compressed'].includes(file.mimetype);
+                    ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain', 'application/zip', 'application/x-zip-compressed', 'application/x-rar-compressed', 'application/vnd.rar', 'application/x-7z-compressed', 'application/octet-stream'].includes(file.mimetype);
     
     if (mimetype && extname) {
       return cb(null, true);
     } else {
-      cb(new Error('Invalid file type'));
+      console.log('Rejected file:', file.originalname, 'MIME:', file.mimetype, 'Ext:', path.extname(file.originalname));
+      cb(new Error(`Invalid file type: ${file.mimetype}. Allowed types: images, videos, audio, PDF, DOC, TXT, ZIP, RAR, 7Z`));
     }
   }
 });
@@ -305,6 +334,106 @@ app.post('/api/posts/:id/like', async (req, res) => {
   }
 });
 
+// Add comment to post
+app.post('/api/posts/:id/comments', async (req, res) => {
+  try {
+    const { user, text, parentId } = req.body;
+    
+    if (!user || !text) {
+      return res.status(400).json({ error: 'User and text are required' });
+    }
+    
+    if (user.length > 20 || text.length > 1000) {
+      return res.status(400).json({ error: 'User or text too long' });
+    }
+
+    const post = await Post.findById(req.params.id);
+    if (!post) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
+
+    const comment = {
+      id: new mongoose.Types.ObjectId().toString(),
+      user: user.trim(),
+      text: text.trim(),
+      parentId: parentId || null,
+      likes: 0,
+      createdAt: new Date()
+    };
+
+    post.comments.push(comment);
+    await post.save();
+
+    res.status(201).json(comment);
+  } catch (error) {
+    console.error('Add comment error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Like comment
+app.post('/api/posts/:postId/comments/:commentId/like', async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.postId);
+    if (!post) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
+
+    const comment = post.comments.id(req.params.commentId);
+    if (!comment) {
+      return res.status(404).json({ error: 'Comment not found' });
+    }
+
+    comment.likes += 1;
+    await post.save();
+
+    res.json({ likes: comment.likes });
+  } catch (error) {
+    console.error('Like comment error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Delete comment (admin only)
+app.delete('/api/posts/:postId/comments/:commentId', async (req, res) => {
+  try {
+    const { password } = req.body;
+    
+    if (password !== ADMIN_PASSWORD) {
+      return res.status(401).json({ error: 'Invalid admin password' });
+    }
+
+    const post = await Post.findById(req.params.postId);
+    if (!post) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
+
+    // Remove the comment and all its replies
+    const commentId = req.params.commentId;
+    const commentsToRemove = [commentId];
+    
+    // Find all replies to this comment (recursive)
+    const findReplies = (parentId) => {
+      post.comments.forEach(comment => {
+        if (comment.parentId === parentId) {
+          commentsToRemove.push(comment.id);
+          findReplies(comment.id);
+        }
+      });
+    };
+    
+    findReplies(commentId);
+    
+    // Remove all comments and replies
+    post.comments = post.comments.filter(comment => !commentsToRemove.includes(comment.id));
+    await post.save();
+
+    res.json({ message: 'Comment and replies deleted successfully' });
+  } catch (error) {
+    console.error('Delete comment error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
 // Delete post (admin only for now)
 app.delete('/api/posts/:id', async (req, res) => {
   try {
